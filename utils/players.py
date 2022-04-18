@@ -1,19 +1,15 @@
-import random
-import asyncio
-
 from typing import List
 
-from discord.ext import commands
-from discord_slash import cog_ext, SlashContext
-from discord_slash.utils.manage_components import create_actionrow
-from discord_slash.utils.manage_components import wait_for_component
-from discord_slash.utils.manage_components import ComponentContext
-from discord_slash.utils.manage_components import create_button
-from discord_slash.model import ButtonStyle
+from discord_slash import SlashContext, cog_ext
 # The below will `import discord` and override some of it's stuff
 from discord_slash.dpy_overrides import *
-
+from discord_slash.model import ButtonStyle
+from discord_slash.utils.manage_components import (ComponentContext,
+                                                   create_actionrow,
+                                                   create_button,
+                                                   wait_for_component)
 from env import misc_emojis
+
 
 class PlayerBase:
     def __init__(self, member: discord.Member):

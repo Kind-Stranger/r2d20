@@ -1,27 +1,19 @@
 # Works with Python 3.8
 #
+import json
+import math
+import os.path
 import random
 import re
-import os.path
 import sys
 import time
-import math
-import json
 import traceback
-import requests
 
 from discord.ext import commands
 from discord_slash import SlashCommand, SlashContext
-from discord_slash.utils.manage_components import create_actionrow
-from discord_slash.utils.manage_components import wait_for_component
-from discord_slash.utils.manage_components import ComponentContext
-from discord_slash.utils.manage_components import create_select
-from discord_slash.utils.manage_components import create_select_option
-from discord_slash.utils.manage_components import create_button
-from discord_slash.model import ButtonStyle
-from discord_slash.model import SlashCommandOptionType
 # The below will `import discord` and override some of it's stuff
 from discord_slash.dpy_overrides import *
+from discord_slash.model import SlashCommandOptionType
 
 from env import *
 from npc_gen import *
@@ -68,7 +60,7 @@ with open(reldir+'/resources/pictionary_words.txt') as f:
               'description': 'e.g. d20@adv+3 or 2d6+4',
               'type': SlashCommandOptionType.STRING,
               'required': True}],
-    guild_ids=[test_id, home_id],
+    guild_ids=[TEST_ID, HOME_ID],
 )
 async def _roll(ctx: SlashContext, dice_with_mods: str):
     # ### Sanitise inputs so the slot nicely into format strings
@@ -98,7 +90,7 @@ async def _roll(ctx: SlashContext, dice_with_mods: str):
 @slash.slash(
     name='hp',
     description='Roll HP the special way',
-    guild_ids=[test_id, home_id],
+    guild_ids=[TEST_ID, HOME_ID],
 )
 async def _hp(ctx: SlashContext, level, hit_dice_sides, cons_mod):
     'Roll hit points the way we like it'
@@ -295,7 +287,7 @@ async def on_message(message):
 @slash.slash(
     name='rollstats',
     description='Roll a new set of 6 stats',
-    guild_ids=[test_id, home_id],
+    guild_ids=[TEST_ID, HOME_ID],
 )
 async def _rollstats(ctx):
     if isAprFool():
@@ -420,7 +412,7 @@ def isAprFool():
 async def on_ready():
     "Happens when bot logs in"
     global bot
-    home_guild = bot.get_guild(home_id)
+    home_guild = bot.get_guild(HOME_ID)
     for em in home_guild.emojis:
         if re.match(r'^d\d+$', em.name, re.IGNORECASE) or\
            em.name.lower() in ['crit', 'fail', 'crit_fail']:
@@ -462,8 +454,8 @@ def main():
 @slash.slash(
     name='pictionary',
     description='Random word generator',
-    guild_ids=[test_id,
-               home_id,
+    guild_ids=[TEST_ID,
+               HOME_ID,
                ],
 )
 async def _random_word(ctx: SlashContext):
@@ -481,7 +473,7 @@ async def _random_word(ctx: SlashContext):
               'description': 'Debugging flag',
               'type': SlashCommandOptionType.BOOLEAN,
               "required": False}],
-    guild_ids=[test_id],
+    guild_ids=[TEST_ID],
 )
 @commands.is_owner()
 async def load_cog(ctx: SlashContext, name: str, debug: bool = False):
