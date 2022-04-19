@@ -43,10 +43,6 @@ Applying beard and pipe... Complete
 ]
 bot.melodrama = melodrama
 
-
-
-
-
 def check_aliases(cmd_args):
     """Check for /roll command without "roll " (e.g. /d20...)
     """
