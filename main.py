@@ -14,7 +14,7 @@ from discord_slash.dpy_overrides import *
 from discord_slash.model import SlashCommandOptionType
 
 from env import *
-from rolls import *
+from utils.rolls import *
 
 intents = discord.Intents().default()
 intents.members = True
