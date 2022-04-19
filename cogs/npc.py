@@ -1,35 +1,28 @@
-import random
 import os.path
+import random
 import sys
 
 from discord.ext import commands
-from discord_slash import cog_ext, SlashContext
-from discord_slash.utils.manage_components import create_actionrow
-from discord_slash.utils.manage_components import wait_for_component
-from discord_slash.utils.manage_components import ComponentContext
-from discord_slash.utils.manage_components import create_button
-from discord_slash.model import ButtonStyle
-from discord_slash.model import SlashCommandOptionType
+from discord_slash import SlashContext, cog_ext
 # The below will `import discord` and override some of its stuff
 from discord_slash.dpy_overrides import *
-
-from env import test_id, home_id
+from discord_slash.model import SlashCommandOptionType
+from env import HOME_ID, TEST_ID
 
 ROOT_DIR=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESOURCE_DIR=os.path.join(ROOT_DIR, 'resources')
 
 class NPCCog(commands.Cog):
-    """NPC Generation Tools"""
-
+    """NPC Generation Tools
+    """
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @cog_ext.cog_slash(
-        name='npc',
-        description="A quick NPC flavour generator",
-        guild_ids=[test_id, home_id],
-    )
-    async def random_npc(self, ctx: SlashContext):
+    @cog_ext.cog_slash(name='npc',
+                       description="A quick NPC flavour generator",
+                       guild_ids=[TEST_ID, HOME_ID])
+    async def random_npc(self,
+                         ctx: SlashContext):
         npc = NPC.generate_random_npc()
         msg = (f"{npc.sex.title()} {npc.age} year old {npc.adjective}"
                f" {npc.race} who {npc.quirk}.")
@@ -37,16 +30,16 @@ class NPCCog(commands.Cog):
         sys.stdout.flush()
         await ctx.reply(msg, hidden=True)
 
-    @cog_ext.cog_slash(
-        name='adj',
-        description="Add an adjective for the NPC generator",
-        options=[{"name": "adjective",
-                  "description": "An adjective to describe this NPC",
-                  "type": SlashCommandOptionType.STRING,
-                  "required": True}],
-        guild_ids=[test_id, home_id],
-    )
-    async def add_adjective(self, ctx: SlashContext, adj: str = None):
+    @cog_ext.cog_slash(name='adj',
+                       description="Add an adjective for the NPC generator",
+                       options=[{"name": "adjective",
+                                 "description": "An adjective to describe this NPC",
+                                 "type": SlashCommandOptionType.STRING,
+                                 "required": True}],
+                       guild_ids=[TEST_ID, HOME_ID])
+    async def add_adjective(self,
+                            ctx: SlashContext,
+                            adj: str = None):
         sys.stdout.write(f"ADJ:{ctx.author.display_name}:{adj}\n")
         sys.stdout.flush()
         if not adj or not str(adj).strip():
@@ -57,46 +50,46 @@ class NPCCog(commands.Cog):
             #
             response = 'I added the adjective for you.'
             if random.randint(1,10) == 1:
-                response = response+'\n'+random.choice(bot.melodrama)
+                response = response+'\n'+random.choice(self.bot.melodrama)
             #
         #
         await ctx.reply(response, hidden=True)
 
-    @cog_ext.cog_slash(
-        name='quirk',
-        description="Add a quirk for the NPC generator",
-        options=[{"name": "quirk",
-                  "description": "Interesting NPC quirk",
-                  "type": SlashCommandOptionType.STRING,
-                  "required": True}],
-        guild_ids=[test_id, home_id],
-    )
+    @cog_ext.cog_slash(name='quirk',
+                       description="Add a quirk for the NPC generator",
+                       options=[{"name": "quirk",
+                                 "description": "Interesting NPC quirk",
+                                 "type": SlashCommandOptionType.STRING,
+                                 "required": True}],
+                       guild_ids=[TEST_ID, HOME_ID])
     async def add_quirk(self, ctx: SlashContext, quirk: str = None):
+        '''
+        '''
         sys.stdout.write(f"QUIRK:{ctx.author.display_name}:{quirk}\n")
         sys.stdout.flush()
         if not quirk or not str(quirk).strip():
             response = "`quirk` parameter missing."
         else:
             with open(os.path.join(RESOURCE_DIR,'extra_flavour.txt'), 'a') as f:
-                f.write(adj+'\n')
+                f.write(quirk+'\n')
             #
             response = 'I added the quirk for you.'
             if random.randint(1,10) == 1:
-                response = response+'\n'+random.choice(bot.melodrama)
+                response = response+'\n'+random.choice(self.bot.melodrama)
             #
         #
         await ctx.reply(response)
 
-    @cog_ext.cog_slash(
-        name='memoryadd',
-        description="Create a memory to recall",
-        options=[{"name": "memory",
-                  "description": "Remember that time when...",
-                  "type": SlashCommandOptionType.STRING,
-                  "required": True}],
-        guild_ids=[test_id, home_id],
-    )
-    async def add_memory(self, ctx: SlashContext, memory: str = None):
+    @cog_ext.cog_slash(name='memoryadd',
+                       description="Create a memory to recall",
+                       options=[{"name": "memory",
+                                 "description": "Remember that time when...",
+                                 "type": SlashCommandOptionType.STRING,
+                                 "required": True}],
+                       guild_ids=[TEST_ID, HOME_ID])
+    async def add_memory(self,
+                         ctx: SlashContext,
+                         memory: str = None):
         sys.stdout.write(f"MEM:{ctx.author.display_name}:{memory}\n")
         sys.stdout.flush()
         if not memory or not str(memory).strip():
@@ -107,17 +100,16 @@ class NPCCog(commands.Cog):
             #
             response = 'I added the memory for you.'
             if random.randint(1,10) == 1:
-                response = response+'\n'+random.choice(bot.melodrama)
+                response = response+'\n'+random.choice(self.bot.melodrama)
             #
         #
         await ctx.reply(response, hidden=True)
 
-    @cog_ext.cog_slash(
-        name='memoryrecall',
-        description="Remember that time when...",
-        guild_ids=[test_id, home_id],
-    )
-    async def recall_memory(self, ctx: SlashContext):
+    @cog_ext.cog_slash(name='memoryrecall',
+                       description="Remember that time when...",
+                       guild_ids=[TEST_ID, HOME_ID])
+    async def recall_memory(self,
+                            ctx: SlashContext):
         with open(os.path.join(RESOURCE_DIR,'memories.txt'), 'r') as f:
             memories = [line.strip() for line in f]
         #
@@ -178,6 +170,7 @@ class NPC:
                  sex: str = None,
     ):
         self.race = str(race) if race else None
+        self.subrace = str(subrace) if subrace else None
         self.main_class = str(main_class) if main_class else None
         self.sub_class = str(sub_class) if sub_class else None
         self.age_group = str(age_group) if age_group else None

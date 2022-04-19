@@ -1,10 +1,5 @@
-import asyncio
-import discord
 import random
 import re
-import sys
-import time
-from env import *
 from heapq import nlargest, nsmallest
 
 def roll_hp(level, hit_dice_sides):
@@ -20,20 +15,56 @@ def roll_hp(level, hit_dice_sides):
         return [hit_dice_sides]
 
 def genstats():
-    'Roll 4d6k3 six times'
+    """Roll 4d6dl1 six times
+    """
     results = []
     for _ in range(6):
         rolls = [random.randint(1,6) for n in range(4)]
-        result = sum(sorted(rolls, reverse=True)[:3])
+        result = sum(sorted(rolls, reverse=True)[:-1])
         results.append(result)
     return results
 
 def parse_roll(die_str, results=None):
-    """Parse standard dice notation
+    """Parse dice notation
+
+    Dice syntax `AdBmCkD+E...`
+    All uppercase letters are numeric variables 
+    All lowercase letters are fixed
+      (i.e. if you are specifying a minimum `mC`,
+       the letter `m` must be provided followed by a number replacing `C`)
+    where:
+      `A`   number of dice                      (OPTIONAL - defaults to 1)
+      `dB`  number of sides `B` on dice         (MANDATORY)
+      `mC`  minimum result `C` for each die     (OPTIONAL)
+      `kD`  number of dice `D` to keep/drop     (OPTIONAL)
+            `k` can be replaced by:
+              - `kh` keep highest (same as `k`)
+              - `kl` keep lowest
+              - `dh` drop highest
+              - `dl` drop lowest
+            specials (replace `kD` with the following):
+              - `@adv` (advantage) keep highest 1 (defaults to 2 dice `A`)
+              - `@dis` (disadvantage) keep lowest 1 (defaults to 2 dice `A`)
+      `+E`  add `E` to the final result         (OPTIONAL)
+            `+` can be replaced by:
+              - `-` subtract `E` from final result
+              - `*` multiply final result by `E`
+              - `/` divide final result by `E`
+
+    It is possible to roll more than 2 dice with advantage/disadvantage. Only
+      the highest/lowest single result will be kept.
+    
+    The sequence can be repeated any number of times. e.g.:
+      `d20@adv+5+2d4+1`
+        Rolls two 20-sided dice
+        Keeps the highest single result
+        Adds 5
+        Adds the results from two four-sided dice
+        Adds 1
     """
     if not die_str:
         return results
-    dice_re = r'^((\d+)?d(\d+)(m(\d+))?(?:(@(?:d(?:is)?)?(?:a(?:dv)?)?(?:antange)?)|([kd][hl]?)(\d+))?((?:[\+\*\-\/]\d+)+)?[\+\-\*/\^]?)'
+    dice_re = r'^((\d+)?d(\d+)(?:m(\d+))?(?:(@(?:d(?:is)?)?(?:a(?:dv)?)?(?:antange)?)|([kd][hl]?)(\d+))?((?:[\+\*\-\/]\d+)+)?[\+\-\*/\^]?)'
     m = re.match(dice_re, die_str)
     if not m:  # No match
         return None
@@ -66,28 +97,28 @@ def do_roll(parsed, dice_emojis, aprFool=False):
             num = 1
         sides = int(p[2])  # No of side on die
         if p[3]:
-            min_score = int(p[4])
+            min_score = int(p[3])
         else:
             min_score = 1
         if min_score > sides:
             min_score = int(sides)
 
-        if p[5] in ['@','@a','@adv','@advantage']:
+        if p[4] in ['@','@a','@adv','@advantage']:
             if num < 2:
                 num = 2
-            p[6] = 'k'
-            p[7] = '1'
-        elif p[5] in ['@d','@dis','@disadv','@disadvantage']:
+            p[5] = 'k'
+            p[6] = '1'
+        elif p[4] in ['@d','@dis','@disadv','@disadvantage']:
             if num < 2:
                 num = 2
-            p[6] = 'kl'
-            p[7] = '1'
+            p[5] = 'kl'
+            p[6] = '1'
 
-        adv = p[6]         # (dis)advantage
+        adv = p[5]         # (dis)advantage
         if adv:
-            advnum = int(p[7])
+            advnum = int(p[6])
         #
-        extra = p[8]
+        extra = p[7]
         if not extra:
             extra = ''
         if p[0][-1] in ['+','*','/','-','^']:
@@ -95,25 +126,26 @@ def do_roll(parsed, dice_emojis, aprFool=False):
         else:
             sign = ''
         #
-        if aprFool:
+        if aprFool:  # Always rolls a 1 on April Fool's
             rolls = [1 for n in range(num)]
         else:
             rolls = [random.randint(min_score,sides) for n in range(num)]
+
         if adv in ['k','kh']:
             keep_only = nlargest(advnum, rolls)
-            discount = nsmallest(len(rolls)-advnum, rolls)
+            not_kept = nsmallest(len(rolls)-advnum, rolls)
         elif adv == 'kl':
             keep_only = nsmallest(advnum, rolls)
-            discount = nlargest(len(rolls)-advnum, rolls)
+            not_kept = nlargest(len(rolls)-advnum, rolls)
         elif adv in ['d', 'dh']:
             keep_only = nsmallest(len(rolls)-advnum, rolls)
-            discount = nlargest(advnum, rolls)
+            not_kept = nlargest(advnum, rolls)
         elif adv == 'dl':
             keep_only = nlargest(len(rolls)-advnum, rolls)
-            discount = nsmallest(advnum, rolls)
+            not_kept = nsmallest(advnum, rolls)
         else:
             keep_only = rolls
-            discount = []
+            not_kept = []
         if f"d{sides}" in dice_emojis:
             # Join with zero width space
             response = ZWS.join([f"d{sides}"]*num) +\
@@ -122,8 +154,8 @@ def do_roll(parsed, dice_emojis, aprFool=False):
             response = f"{num}d{sides}(" +\
                        '+'.join(map(str, rolls)) + f"){extra}{sign}"
         sumstr = str(sum(keep_only)) + f"{extra}{sign}"
-        if discount:
-            for die in discount:
+        if not_kept:
+            for die in not_kept:
                 die_re = f"([\(\+\*\/\-])({die})([\+\*\/\-\)])"
                 response = re.sub(die_re, r'\1~~_\2_~~\3', response, count=1)
             for die in keep_only:

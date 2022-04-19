@@ -1,33 +1,32 @@
-import sys
 import asyncio
 import random
-import time
+import sys
 
 from discord.ext import commands
-from discord_slash import cog_ext, SlashContext
-from discord_slash.utils.manage_components import create_actionrow
-from discord_slash.utils.manage_components import wait_for_component
-from discord_slash.utils.manage_components import ComponentContext
-from discord_slash.utils.manage_components import create_button
-from discord_slash.model import ButtonStyle
+from discord_slash import SlashContext, cog_ext
 # The below will `import discord` and override some of its stuff
 from discord_slash.dpy_overrides import *
-
-from env import misc_emojis, test_id, home_id
-from utils.players import gather_players
-from utils.players import PlayerBase
+from discord_slash.model import ButtonStyle
+from discord_slash.utils.manage_components import (ComponentContext,
+                                                   create_actionrow,
+                                                   create_button,
+                                                   create_select,
+                                                   create_select_option,
+                                                   wait_for_component)
+from env import HOME_ID, TEST_ID, misc_emojis
 from utils.num2words import num2words
+from utils.players import PlayerBase, gather_players
+
 
 class LiarsDiceCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @cog_ext.cog_slash(
-        name='liarsdice',
-        description="Liar's Dice/Perudo",
-        guild_ids=[test_id, home_id],
-    ):
-    async def liarsdice(self, ctx: SlashContext):
+    @cog_ext.cog_slash(name='liarsdice',
+                       description="Liar's Dice/Perudo",
+                       guild_ids=[TEST_ID, HOME_ID])
+    async def liarsdice(self,
+                        ctx: SlashContext):
         game = LiarsDiceGame(self.bot, ctx)
         await game.play()
 
@@ -42,14 +41,13 @@ class LiarsDiceGame:
         self.game_owner = ctx.author
         self.players = [self.game_owner]
         self.max_players = int(max_players)
-        #
         self.timeout = int(timeout)
         if self.timeout < 0:
             self.timeout *= -1
         #
         self.game_msg = None
 
-    def init_embed(self):
+    async def init_embed(self):
         embed = discord.Embed(title=str("Liar's Dice"),
                               colour=discord.Colour.random())
         embed.set_author(name=self.game_owner.display_name,
@@ -59,7 +57,7 @@ class LiarsDiceGame:
         self.game_msg = await self.ctx.send(embeds=[embed])
         return (self.game_msg, embed)
 
-    def get_players(self, game_msg: discord.Message):
+    async def get_players(self, game_msg: discord.Message):
         self.players = [ LiarsDicePlayer(player) for player in
                          await gather_players(
                              self.bot,
@@ -70,15 +68,15 @@ class LiarsDiceGame:
                              timeout = int(self.timeout)) ]
         return self.players
 
-    def play(self):
+    async def play(self):
         em = misc_emojis
         try:
-            game_msg, embed = init_embed()
+            game_msg, embed = await self.init_embed()
             players = self.get_players(game_msg)
             bet_btn = self.get_bet_button()
             challenge_btn = self.get_pass_button()
             player_index = 0
-
+            game_die = misc_emojis["game_die"]
             while 1:
                 # Hidden msaage for each player's rolls
                 for p in players:
@@ -103,7 +101,7 @@ class LiarsDiceGame:
                         foot_text = ''
                     #
                     p_name = f'{player_index+1} {p.display_name}'
-                    foot_text +=  f"{p_name}, make a bet!")
+                    foot_text +=  f"{p_name}, make a bet!"
                     embed.set_footer(text=foot_text)
                     #
                     if not max_bet:
@@ -112,7 +110,7 @@ class LiarsDiceGame:
                         min_q = max_bet[0]
                     #
                     max_q = sum(len(p.dice) for p in players)
-                    quantity_select = self.get_quantity_select(min_q, max_q))
+                    quantity_select = self.get_quantity_select(min_q, max_q)
                     value_select = self.get_value_select()
                     actionrow = create_actionrow(quantity_select,
                                                  value_select,
@@ -123,7 +121,7 @@ class LiarsDiceGame:
                                         components=[actionrow])
 
                     def is_current_player(ctx: ComponentContext):
-                        return ctx.author_id = p.id
+                        return ctx.author_id == p.id
 
                     quant = 0
                     val = 0
@@ -132,10 +130,10 @@ class LiarsDiceGame:
                             await wait_for_component(self.bot,
                                                      messages=[game_msg],
                                                      components=[actionrow],
-                                                     check=current_player,
+                                                     check=is_current_player,
                                                      timeout=int(self.timeout))
                         if quantity_select['custom_id'] == btn_ctx.custom_id:
-                            quant = int(ctx.selected_options[0])
+                            quant = int(self.ctx.selected_options[0])
                             update = False
                             if quant > 1:
                                 old_vs_id = str(value_select['custom_id'])
@@ -151,7 +149,7 @@ class LiarsDiceGame:
                                                     components=[actionrow])
                             #
                         elif value_select['custom_id'] == btn_ctx.custom_id:
-                            val = int(ctx.selected_options[0])
+                            val = int(self.ctx.selected_options[0])
                             if quant and val:
                                 bet_btn['disabled'] = False
                                 await game_msg.edit(embeds=[embed],
@@ -240,7 +238,7 @@ class LiarsDiceGame:
                 return next_player_index
 
 class LiarsDicePlayer(PlayerBase):
-    def __init__(self, member: dicord.Member):
+    def __init__(self, member: discord.Member):
         super().__init__(member)
         self.dice = [1] * 5
         
@@ -252,4 +250,4 @@ class LiarsDicePlayer(PlayerBase):
         del self.dice[0]
 
 def setup(bot):
-    bot.add_cog(GenericDiceGameCog(bot))
+    bot.add_cog(LiarsDiceCog(bot))

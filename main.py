@@ -1,8 +1,6 @@
 # Works with Python 3.8
 #
-import json
 import math
-import os.path
 import random
 import re
 import sys
@@ -16,12 +14,10 @@ from discord_slash.dpy_overrides import *
 from discord_slash.model import SlashCommandOptionType
 
 from env import *
-from npc_gen import *
 from rolls import *
 
 intents = discord.Intents().default()
 intents.members = True
-reldir = os.path.dirname(os.path.abspath(__file__))
 bot = commands.Bot(command_prefix='/', intents=intents)
 slash = SlashCommand(bot, sync_commands=True, sync_on_cog_reload=True)
 
@@ -48,33 +44,17 @@ Applying beard and pipe... Complete
 ]
 bot.melodrama = melodrama
 
-# WORDS = [w.decode('UTF-8') for w in
-#          requests.get("https://www.mit.edu/~ecprice/wordlist.10000").content.splitlines()]
-with open(reldir+'/resources/pictionary_words.txt') as f:
-    WORDS = [w.strip() for w in f]
-
-@slash.slash(
-    name='roll',
-    description='Roll a die',
-    options=[{'name':'dice_with_mods',
-              'description': 'e.g. d20@adv+3 or 2d6+4',
-              'type': SlashCommandOptionType.STRING,
-              'required': True}],
-    guild_ids=[TEST_ID, HOME_ID],
-)
-async def _roll(ctx: SlashContext, dice_with_mods: str):
-    # ### Sanitise inputs so the slot nicely into format strings
-    # if adv: # Cannot have quantity > 1 if advantage
-    #     quantity = ""
-    # else:
-    #     adv = ""
-    # # Blank quantity if it's only 1 - easier to read ("more standard")
-    # if not quantity or quantity == 1:
-    #     quantity = ""
-    # ##
-    # if not mod:
-    #     mod = ""
-    #
+@slash.slash(name='roll',
+             description='Roll a die',
+             options=[{'name':'dice_with_mods',
+                       'description': 'e.g. d20@adv+3 or 2d6+4',
+                       'type': SlashCommandOptionType.STRING,
+                       'required': True}],
+             guild_ids=[TEST_ID, HOME_ID])
+async def _roll(ctx: SlashContext,
+                dice_with_mods: str):
+    """Slash Command for rolling dice
+    """
     orig = str(dice_with_mods).replace(' ','')
     parsed = parse_roll(orig)
     results = do_roll(parsed, dice_emojis, isAprFool())
@@ -87,13 +67,15 @@ async def _roll(ctx: SlashContext, dice_with_mods: str):
                      icon_url=ctx.author.avatar_url)
     await ctx.send(embeds=[embed])
 
-@slash.slash(
-    name='hp',
-    description='Roll HP the special way',
-    guild_ids=[TEST_ID, HOME_ID],
-)
-async def _hp(ctx: SlashContext, level, hit_dice_sides, cons_mod):
-    'Roll hit points the way we like it'
+@slash.slash(name='hp',
+             description='Roll HP the special way',
+             guild_ids=[TEST_ID, HOME_ID])
+async def _hp(ctx: SlashContext,
+              level,
+              hit_dice_sides,
+              cons_mod):
+    """Roll hit points the way we like it
+    """
     results = roll_hp(level, hit_dice_sides)
     max_hp = sum(results)
     try:
@@ -120,15 +102,14 @@ async def _hp(ctx: SlashContext, level, hit_dice_sides, cons_mod):
     await ctx.send(embeds=[embed])
 
 def check_aliases(cmd_args):
-    cmd = cmd_args.pop(0).lower()
-
-    # /roll command without "roll " (e.g. /d20...)
+    """Check for /roll command without "roll " (e.g. /d20...)
+    """
     rollAliasRe = r'^/(\d*d\d+.*)$'
+    cmd = cmd_args.pop(0).lower()
     m = re.match(rollAliasRe, cmd)
     if m:
         cmd = '/roll'
         cmd_args.insert(0,m.groups()[0])
-
     #
     return (cmd, cmd_args)
 
@@ -170,7 +151,7 @@ async def on_message(message):
         print(f'cmd:{cmd}, cmd_args:{cmd_args}')
     #
     if isAprFool() and \
-       message.author.id not in [333239261878943744, 504800163039150112]:
+       message.author.id not in MY_USER_IDS:
         await scramble_nickname(message.author)
 
     if cmd in ['/r2', '/roll']:
@@ -253,7 +234,8 @@ async def on_message(message):
             msg = INVALID_SYNTAX_RESPONSE
         #
         await message.channel.send(msg)
-    elif message.author.id in [333239261878943744, 504800163039150112]:
+    #
+    elif message.author.id in MY_USER_IDS:
         if cmd == '/clearstatus':
             await bot.change_presence(activity=None)
         elif cmd.startswith('/') and hasattr(discord.ActivityType, cmd[1:]):  
@@ -284,14 +266,14 @@ async def on_message(message):
             await message.channel.send(embed=msg)
 
 
-@slash.slash(
-    name='rollstats',
-    description='Roll a new set of 6 stats',
-    guild_ids=[TEST_ID, HOME_ID],
-)
+@slash.slash(name='rollstats',
+             description='Roll a new set of 6 stats',
+             guild_ids=[TEST_ID, HOME_ID])
 async def _rollstats(ctx):
+    """Slash command for rolling a new set of six stats
+    """
     if isAprFool():
-        results = [3]*6
+        results = [3]*6 # Minimum possible on April Fool's
     else:
         results = genstats()
     #
@@ -328,67 +310,6 @@ def emoji_replace(estr, emoji_dict, to_name=False, to_emoji=False):
             estr = re.sub(em_re, str(em), estr)
     #
     return estr
-
-async def save_stats(player_stats):
-    player_path = os.path.join(reldir, 'users', player_stats['character_name'])
-    with open(player_path, 'w') as f:
-        json.dump(player_stats, f)
-
-async def load_stats(user):
-    player_path = os.path.join(reldir, 'users', user.display_name)
-    if os.path.exists(player_path):
-        with open(player_path,'r') as f:
-            player_stats = json.load(f)
-        #
-    else:
-        player_stats = {}
-    #
-    return merge_with_template(player_stats, user)
-
-def merge_with_template(player_stats, user):
-    stats_template = {
-        'user_id':user.id,
-        'character_name':user.display_name,
-        'stats':{
-            'STR':0,
-            'DEX':0,
-            'CON':0,
-            'INT':0,
-            'WIS':0,
-            'CHA':0,
-        },
-        'saves':[],
-        'prof':0,
-        'ac':0,
-        'skills':[],
-        'xp':0,
-        'level':0,
-        'race':'',
-        'class':'',
-        'age':'',
-        'height':'',
-        'background':'',
-        'alignment':'',
-        'speed':0,
-        'inspiration':False,
-        'hp_max':0,
-        'hp_current':0,
-        'copper':0,
-        'silver':0,
-        'electrum':0,
-        'gold':0,
-        'platinum':0,
-        'hit_dice_max':[],
-        'hit_dice_current':[],
-    }
-    if not player_stats:
-        return dict(stats_template)
-    for k in stats_template:
-        if k not in player_stats:
-            player_stats[k] = stats_template[k]
-        #
-    #
-    return dict(player_stats)
 
 async def scramble_nickname(user):
     sys.stdout.write(f'scrambling {user.display_name}...\n')
@@ -431,6 +352,7 @@ def main():
     global dice_emojis
     global misc_emojis
     global bot
+
     # Load the Cogs
     for extn in [
             'cogs.test_cog',
@@ -451,30 +373,17 @@ def main():
     # Run the bot
     bot.run(TOKEN)
 
-@slash.slash(
-    name='pictionary',
-    description='Random word generator',
-    guild_ids=[TEST_ID,
-               HOME_ID,
-               ],
-)
-async def _random_word(ctx: SlashContext):
-    word = str(random.choice(WORDS)).upper()
-    await ctx.send(f"Your word is : {word}", hidden=True)
-    
-@slash.slash(
-    name='cogload',
-    description='Re/Load a cog',
-    options=[{'name':'name',
-              'description': 'Name of the cog',
-              'type': SlashCommandOptionType.STRING,
-              "required": True},
-             {'name':'debug',
-              'description': 'Debugging flag',
-              'type': SlashCommandOptionType.BOOLEAN,
-              "required": False}],
-    guild_ids=[TEST_ID],
-)
+@slash.slash(name='cogload',
+             description='Re/Load a cog',
+             options=[{'name':'name',
+                       'description': 'Name of the cog',
+                       'type': SlashCommandOptionType.STRING,
+                       "required": True},
+                      {'name':'debug',
+                       'description': 'Debugging flag',
+                       'type': SlashCommandOptionType.BOOLEAN,
+                       "required": False}],
+             guild_ids=[TEST_ID])
 @commands.is_owner()
 async def load_cog(ctx: SlashContext, name: str, debug: bool = False):
     try:

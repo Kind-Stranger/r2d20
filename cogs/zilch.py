@@ -13,7 +13,7 @@ from discord_slash.model import ButtonStyle
 # The below will `import discord` and override some of its stuff
 from discord_slash.dpy_overrides import *
 
-from env import misc_emojis, home_id, test_id
+from env import misc_emojis, HOME_ID, TEST_ID
 from utils.players import gather_players
 from utils.players import PlayerBase
 
@@ -30,7 +30,7 @@ class ZilchCog(commands.Cog):
     @cog_ext.cog_slash(
         name='zilch',
         description='Yet another dice game. 2 players required.',
-        guild_ids=[test_id, home_id],
+        guild_ids=[TEST_ID, HOME_ID],
     )
     async def _zilch(self, ctx: SlashContext):
         game = Zilch(self.bot, ctx)
@@ -69,6 +69,7 @@ class Zilch:
                              timeout = int(self.timeout)) ]
 
     async def get_buttons(self):
+        game_msg = self.game_msg
         roll_btn = create_button(
             style=ButtonStyle.green,
             label='ROLL',
