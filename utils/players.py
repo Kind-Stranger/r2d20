@@ -10,7 +10,6 @@ from discord_slash.utils.manage_components import (ComponentContext,
                                                    wait_for_component)
 from env import misc_emojis
 
-
 class PlayerBase:
     def __init__(self, member: discord.Member):
         self._member = member
@@ -25,7 +24,6 @@ class PlayerBase:
             return getattr(self.member, name)
         else:
             raise AttributeError(f"'{self.__class__.__name__} has no attribute '{name}'")
-
 
 async def gather_players(bot,
                          *,
