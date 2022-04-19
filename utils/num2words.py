@@ -5,7 +5,6 @@ LOW_WORDS = ['zero','one','two','three','four',
 TENS_WORDS = ['twenty','thirty','fourty','fifty',
               'sixty','seventy','eighty','ninety']
 
-
 def num2words(num, plural=False):
     '''Currently only works for 2-digit numbers because that's all I need :)
     '''
