@@ -12,7 +12,7 @@ from discord_slash.dpy_overrides import *
 from discord_slash.model import SlashCommandOptionType
 
 from env import *
-from utils.rolls import *
+from utils.roll_utils import *
 from utils.pranks import *
 
 intents = discord.Intents().default()
@@ -43,62 +43,9 @@ Applying beard and pipe... Complete
 ]
 bot.melodrama = melodrama
 
-@slash.slash(name='roll',
-             description='Roll a die',
-             options=[{'name':'dice_with_mods',
-                       'description': 'e.g. d20@adv+3 or 2d6+4',
-                       'type': SlashCommandOptionType.STRING,
-                       'required': True}],
-             guild_ids=[TEST_ID, HOME_ID])
-async def _roll(ctx: SlashContext,
-                dice_with_mods: str):
-    """Slash Command for rolling dice
-    """
-    orig = str(dice_with_mods).replace(' ','')
-    parsed = parse_roll(orig)
-    results = do_roll(parsed, dice_emojis, isAprFool())
-    question = ''.join([r[0] for r in results])
-    question = emoji_replace(question, dice_emojis, to_emoji=True)
-    answer = eval(''.join([r[1] for r in results]))
-    embed = discord.Embed(title=f'{orig}',
-                          description=f'{question} = {answer}')
-    embed.set_author(name=ctx.author.display_name,
-                     icon_url=ctx.author.avatar_url)
-    await ctx.send(embeds=[embed])
 
-@slash.slash(name='hp',
-             description='Roll HP the special way',
-             guild_ids=[TEST_ID, HOME_ID])
-async def _hp(ctx: SlashContext,
-              level,
-              hit_dice_sides,
-              cons_mod):
-    """Roll hit points the way we like it
-    """
-    results = roll_hp(level, hit_dice_sides)
-    max_hp = sum(results)
-    try:
-        if cons_mod.startswith('+'):
-            max_hp += int(cons_mod[1:]) * level
-        elif cons_mod.startswith('-'):
-            max_hp -= int(cons_mod[1:]) * level
-        elif cons_mod == '0':
-            pass
-        else:
-            raise IOError("Invalid consitution modifier format")
-    except Exception:
-        await ctx.send('Invalid constitution modifier format. e.g. +2, -1, 0')
-        return
-    #
-    embed = discord.Embed()
-    embed.add_field(name='Level', value=f"{level}")
-    embed.add_field(name='Hit Dice', value=f"d{hit_dice_sides}")
-    embed.add_field(name='CON Modifier', value=f"{cons_mod}")
-    embed.add_field(name='Results', value=', '.join(map(str,results)))
-    embed.add_field(name='Max Hit Points', value=f"{max_hp}", inline=False)
-    embed.set_author(name=ctx.author.display_name,
-                     icon_url=ctx.author.avatar_url)
-    await ctx.send(embeds=[embed])
+
+
 
 def check_aliases(cmd_args):
     """Check for /roll command without "roll " (e.g. /d20...)
@@ -205,23 +152,6 @@ async def on_message(message):
             await message.channel.send(embed=msg)
 
 
-@slash.slash(name='rollstats',
-             description='Roll a new set of 6 stats',
-             guild_ids=[TEST_ID, HOME_ID])
-async def _rollstats(ctx):
-    """Slash command for rolling a new set of six stats
-    """
-    if isAprFool():
-        results = [3]*6 # Minimum possible on April Fool's
-    else:
-        results = genstats()
-    #
-    results_str = ', '.join(map(str, sorted(results, reverse=True)))
-    embed = discord.Embed(title='Rolled New Stats',
-                          description=results_str)
-    embed.set_author(name=ctx.author.display_name,
-                     icon_url=ctx.author.avatar_url)
-    await ctx.send(embeds=[embed])
 
 def emoji_replace(estr, emoji_dict, to_name=False, to_emoji=False):
     """Replace emojis for their names in given string
@@ -277,9 +207,9 @@ def main():
 
     # Load the Cogs
     for extn in [
-            'cogs.test_cog',
             'cogs.generic_dice_games',
             'cogs.npc',
+            'cogs.rolls'
     ]:
         try:
             bot.load_extension(extn)
