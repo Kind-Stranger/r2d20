@@ -1,10 +1,8 @@
 # Works with Python 3.8
 #
 import math
-import random
 import re
 import sys
-import time
 import traceback
 
 from discord.ext import commands
@@ -15,6 +13,7 @@ from discord_slash.model import SlashCommandOptionType
 
 from env import *
 from utils.rolls import *
+from utils.pranks import *
 
 intents = discord.Intents().default()
 intents.members = True
@@ -153,68 +152,8 @@ async def on_message(message):
     if isAprFool() and \
        message.author.id not in MY_USER_IDS:
         await scramble_nickname(message.author)
-
-    if cmd in ['/r2', '/roll']:
-        try:
-            cmd_args = ''.join([s.replace(' ','') for s in cmd_args]).lower()
-            sys.stdout.write(f"ROLL:{message.id}:MSGI:{cmd_args}\n")
-            sys.stdout.flush()
-            cmd_args = emoji_replace(cmd_args, dice_emojis, to_name=True)
-            parsed = parse_roll(cmd_args)
-            if parsed:
-                orig = ''.join([group[0] for group in parsed])
-                sys.stdout.write(f"{message.id}:ORIG:{orig}\n")
-                sys.stdout.flush()
-                results = do_roll(parsed, dice_emojis, isAprFool())
-                question = ''.join([r[0] for r in results])
-                question = emoji_replace(question, dice_emojis, to_emoji=True)
-                answer = eval(''.join([r[1] for r in results]))
-                if message.guild:
-                    try:
-                        # delete original message
-                        await message.delete()
-                    except Exception:
-                        sys.stderr.write('unable to delete message/n')
-                        sys.stderr.flush()
-                        raise
-                    #
-                    msg = (f"{message.author.mention} `{orig}` : "
-                           f"{question} = {answer}")
-                else:
-                    msg = f"`{orig}` : {question} = {answer}"
-                if debug:
-                    m = ':'.join([
-                        "ROLL",
-                        message.author.display_name,
-                        str(message.id),
-                        "MSGOUT",
-                        msg,
-                    ])
-                    sys.stdout.write(m+'\n')
-                    sys.stdout.flush()
-                #
-            #
-            else:
-                if debug:
-                    m = ':'.join([
-                        "ROLL",
-                        message.author.display_name,
-                        message.id,
-                        "INCORRECT SYNTAX",
-                    ])
-                    sys.stdout.write(m+'\n')
-                    sys.stdout.flush()
-                #
-                msg = INVALID_SYNTAX_RESPONSE
-        except Exception as msg:
-            msg = EXCEPTION_RESPONSE
-            await message.channel.send(msg)
-            raise
-        else:
-            await message.channel.send(str(msg))
-        #
     #
-    elif cmd in ['/hyp', '/hypot', '/tri', '/triangle']:
+    if cmd in ['/hyp', '/hypot', '/tri', '/triangle']:
         cmd_args = [arg for arg in cmd_args if len(arg)]
         joiner = ['', ','][len(cmd_args) == 2]
         hyp_sum = joiner.join([str(x).strip() for x in cmd_args])
@@ -311,23 +250,6 @@ def emoji_replace(estr, emoji_dict, to_name=False, to_emoji=False):
     #
     return estr
 
-async def scramble_nickname(user):
-    sys.stdout.write(f'scrambling {user.display_name}...\n')
-    sys.stdout.flush()
-    new_nick = list(user.display_name)
-    random.shuffle(new_nick)    # Shuffles in-place
-    new_nick = ''.join(new_nick)
-    await user.edit(nick=new_nick)
-
-async def random_swap_all_nicknames(user_list):
-    display_names = [u.display_name for u in user_list]
-    random.shuffle(display_names)
-    for user in user_list:
-        new_nick = display_names.pop()
-        await user.edit(nick=new_nick)
-
-def isAprFool():
-    return time.strftime('%d-%b') == '01-Apr'
 
 @bot.event
 async def on_ready():
