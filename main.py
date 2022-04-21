@@ -148,7 +148,6 @@ async def on_message(message):
             await message.channel.send(embed=msg)
 
 
-
 def emoji_replace(estr, emoji_dict, to_name=False, to_emoji=False):
     """Replace emojis for their names in given string
 

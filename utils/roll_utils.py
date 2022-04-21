@@ -1,8 +1,10 @@
 import random
 import re
 from heapq import nlargest, nsmallest
+from typing import List
 
-def roll_hp(level, hit_dice_sides):
+def roll_hp(level: int,
+            hit_dice_sides: int):
     if hit_dice_sides < 1:
         hit_dice_sides = 1
     min_roll = (int(hit_dice_sides) - 1) // 2 + 1
@@ -24,7 +26,8 @@ def genstats():
         results.append(result)
     return results
 
-def parse_roll(die_str, results=None):
+def parse_roll(die_str: str,
+               results=None):
     """Parse dice notation
 
     Dice syntax `AdBmCkD+E...`
@@ -86,7 +89,9 @@ def parse_roll(die_str, results=None):
     results = parse_roll(die_str[m.end():], results)
     return results
 
-def do_roll(parsed, dice_emojis, aprFool=False):
+def do_roll(parsed: List,
+            dice_emojis: dict,
+            aprFool=False):
     ZWS = '\u200B'              # Zero Width Space
     results = []
     for p in parsed:
