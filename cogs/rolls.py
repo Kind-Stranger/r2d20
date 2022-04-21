@@ -60,7 +60,7 @@ class DiceRollsCog(commands.Cog):
     @cog_ext.cog_slash(name='hp',
                        description='Roll HP the special way',
                        options=[{'name': 'level',
-                                 'decrition': 'Character level',
+                                 'description': 'Character level',
                                  'type': SlashCommandOptionType.INTEGER,
                                  'required': True},
                                 {'name': 'hit_dice_sides',
