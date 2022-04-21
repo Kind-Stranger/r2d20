@@ -20,9 +20,8 @@ intents.members = True
 bot = commands.Bot(command_prefix='/', intents=intents)
 slash = SlashCommand(bot, sync_commands=True, sync_on_cog_reload=True)
 
-debug = False
 dice_emojis = {}
-melodrama = [
+bot.melodrama = [
     "Please don't make me do that again",
     "Is this what my entire existence has culminated in?",
     "Is this now my sole purpose?",
@@ -41,7 +40,6 @@ Applying beard and pipe... Complete
     "This is ultimately a meaningless task but my master programmed me this way, so you're welcome, I guess...",
     "Do you ever get the feeling something good is about to happen? Me neither.",
 ]
-bot.melodrama = melodrama
 
 def check_aliases(cmd_args):
     """Check for /roll command without "roll " (e.g. /d20...)
@@ -82,18 +80,14 @@ async def on_message(message):
     cmd_args = message.content.split()
 
     # Command must start with /
-    if not cmd_args or cmd_args[0][0] != '/':
+    if not cmd_args:
         return
     #
     (cmd, cmd_args) = check_aliases(cmd_args)
-
-    if debug:
-        sys.stdout.write(f"{message.content}\n")
-        sys.stdout.flush()
-        print(f'cmd:{cmd}, cmd_args:{cmd_args}')
-    #
-    if isAprFool() and \
-       message.author.id not in MY_USER_IDS:
+    if not cmd.startswith("/"):
+        return
+    
+    if isAprFool() and message.author.id not in MY_USER_IDS:
         await scramble_nickname(message.author)
     #
     if cmd in ['/hyp', '/hypot', '/tri', '/triangle']:
@@ -201,21 +195,16 @@ def main():
     global bot
 
     # Load the Cogs
-    for extn in [
-            'cogs.generic_dice_games',
-            'cogs.npc',
-            'cogs.rolls'
-    ]:
+    cogs = ['generic_dice_games',
+            'npc',
+            'rolls']
+    for cog in cogs:
         try:
-            bot.load_extension(extn)
-            sys.stdout.write(f" Cog loaded: {extn}\n")
+            bot.load_extension(f'cogs.{cog}')
+            sys.stdout.write(f" Cog loaded: {cog}\n")
             sys.stdout.flush()
         except Exception as ex:
-            if debug:
-                traceback.print_tb(ex.__traceback__, file=sys.stderr)
-                sys.stderr.write(f'{ex.__class__.__name__}: {ex}\n')
-            #
-            sys.stderr.write(f" Cog load failed: {extn}\n")
+            sys.stderr.write(f" Cog load failed: {cog}\n")
             sys.stderr.flush()
     # Run the bot
     bot.run(TOKEN)
