@@ -336,7 +336,12 @@ class GenericDiceGame:
                                     all_scores = sorted(p.score for p in players)
                                     while self.score_limit in all_scores:
                                         self.score_limit += 1
-                                    embed.set_field_at(-1,
+                                    #
+                                    if how_clicked:
+                                        field_pos = -2
+                                    else:
+                                        field_pos = -1
+                                    embed.set_field_at(field_pos,
                                                        name='Target',
                                                        value=str(self.score_limit),
                                                        inline=False)
