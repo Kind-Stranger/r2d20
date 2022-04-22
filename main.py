@@ -90,28 +90,7 @@ async def on_message(message):
     if isAprFool() and message.author.id not in MY_USER_IDS:
         await scramble_nickname(message.author)
     #
-    if cmd in ['/hyp', '/hypot', '/tri', '/triangle']:
-        cmd_args = [arg for arg in cmd_args if len(arg)]
-        joiner = ['', ','][len(cmd_args) == 2]
-        hyp_sum = joiner.join([str(x).strip() for x in cmd_args])
-        hyp_re = '^(\d+)[\*x\+,](\d+)$'
-        m = re.match(hyp_re, hyp_sum)
-        try:
-            if m:
-                adj, opp = (int(x) for x in m.groups())
-                hyp = round(math.hypot(adj, opp), 2)
-                hyp_ceil = math.ceil(hyp)
-                msg = (f"{message.author.mention}\n"
-                       f"**{adj}**^2 + **{opp}**^2 = **{hyp}**^2\n"
-                       f"***Distance to target: {hyp_ceil}***")
-            else:
-                msg = INVALID_SYNTAX_RESPONSE
-        except Exception as ex:
-            msg = INVALID_SYNTAX_RESPONSE
-        #
-        await message.channel.send(msg)
-    #
-    elif message.author.id in MY_USER_IDS:
+    if message.author.id in MY_USER_IDS:
         if cmd == '/clearstatus':
             await bot.change_presence(activity=None)
         elif cmd.startswith('/') and hasattr(discord.ActivityType, cmd[1:]):  
