@@ -47,7 +47,7 @@ class GenericDiceGameCog(commands.Cog):
     @cog_ext.cog_slash(
         name='bb2',
         description="Baldur's Bones with increasing target if it's hit",
-        guild_ids=[GUILD_IDS],
+        guild_ids=GUILD_IDS,
     )
     async def _variant_bb(self, ctx: SlashContext):
         game = GenericDiceGame(self.bot,
@@ -63,7 +63,7 @@ class GenericDiceGameCog(commands.Cog):
     @cog_ext.cog_slash(
         name='kk2',
         description="Kobold's Knuckles with increasing target if it's hit",
-        guild_ids=[GUILD_IDS],
+        guild_ids=GUILD_IDS,
     )
     async def _variant_kk(self, ctx: SlashContext):
         game = GenericDiceGame(self.bot,
@@ -81,7 +81,7 @@ class GenericDiceGameCog(commands.Cog):
     @cog_ext.cog_slash(
         name='bb',
         description="Play a game of Baldur's Bones",
-        guild_ids=[GUILD_IDS],
+        guild_ids=GUILD_IDS,
     )
     async def _baldurs_bones(self, ctx: SlashContext):
         game = GenericDiceGame(self.bot,
@@ -96,7 +96,7 @@ class GenericDiceGameCog(commands.Cog):
     @cog_ext.cog_slash(
         name='kk',
         description="Play a game of Kobold's Knuckles",
-        guild_ids=[GUILD_IDS],
+        guild_ids=GUILD_IDS,
     )
     async def _kobolds_knuckles(self, ctx: SlashContext):
         game = GenericDiceGame(self.bot,
