@@ -15,7 +15,7 @@ from discord_slash.model import ButtonStyle
 # The below will `import discord` and override some of its stuff
 from discord_slash.dpy_overrides import *
 
-from env import misc_emojis, TEST_ID, HOME_ID
+from env import GUILD_IDS, misc_emojis, TEST_ID, HOME_ID
 from utils.players import gather_players
 from utils.players import PlayerBase
 
@@ -47,7 +47,7 @@ class GenericDiceGameCog(commands.Cog):
     @cog_ext.cog_slash(
         name='bb2',
         description="Baldur's Bones with increasing target if it's hit",
-        guild_ids=[TEST_ID, HOME_ID],
+        guild_ids=[GUILD_IDS],
     )
     async def _variant_bb(self, ctx: SlashContext):
         game = GenericDiceGame(self.bot,
@@ -63,7 +63,7 @@ class GenericDiceGameCog(commands.Cog):
     @cog_ext.cog_slash(
         name='kk2',
         description="Kobold's Knuckles with increasing target if it's hit",
-        guild_ids=[TEST_ID, HOME_ID],
+        guild_ids=[GUILD_IDS],
     )
     async def _variant_kk(self, ctx: SlashContext):
         game = GenericDiceGame(self.bot,
@@ -81,7 +81,7 @@ class GenericDiceGameCog(commands.Cog):
     @cog_ext.cog_slash(
         name='bb',
         description="Play a game of Baldur's Bones",
-        guild_ids=[TEST_ID, HOME_ID],
+        guild_ids=[GUILD_IDS],
     )
     async def _baldurs_bones(self, ctx: SlashContext):
         game = GenericDiceGame(self.bot,
@@ -96,7 +96,7 @@ class GenericDiceGameCog(commands.Cog):
     @cog_ext.cog_slash(
         name='kk',
         description="Play a game of Kobold's Knuckles",
-        guild_ids=[TEST_ID, HOME_ID],
+        guild_ids=[GUILD_IDS],
     )
     async def _kobolds_knuckles(self, ctx: SlashContext):
         game = GenericDiceGame(self.bot,

@@ -4,7 +4,7 @@ from discord_slash import SlashContext, cog_ext
 from discord_slash.dpy_overrides import *
 from discord_slash.model import SlashCommandOptionType
 
-from env import HOME_ID, TEST_ID
+from env import GUILD_IDS
 from main import emoji_replace
 from utils.pranks import isAprFool
 from utils.roll_utils import do_roll, genstats, parse_roll, roll_hp
@@ -20,7 +20,7 @@ class DiceRollsCog(commands.Cog):
                                  'description': 'e.g. d20@adv+3 or 2d6+4',
                                  'type': SlashCommandOptionType.STRING,
                                  'required': True}],
-                       guild_ids=[TEST_ID, HOME_ID])
+                       guild_ids=GUILD_IDS)
     async def roll(self,
                    ctx: SlashContext,
                    dice_with_mods: str):
@@ -40,7 +40,7 @@ class DiceRollsCog(commands.Cog):
 
     @cog_ext.cog_slash(name='rollstats',
                        description='Roll a new set of 6 stats',
-                       guild_ids=[TEST_ID, HOME_ID])
+                       guild_ids=GUILD_IDS)
     async def rollstats(self,
                         ctx: SlashContext):
         """Slash command for rolling a new set of six stats
@@ -71,7 +71,7 @@ class DiceRollsCog(commands.Cog):
                                  'description': 'Constitution modifier (e.g. `+2` or `-1` or `0` etc.)',
                                  'type': SlashCommandOptionType.INTEGER,
                                  'required': True}],
-                       guild_ids=[TEST_ID, HOME_ID])
+                       guild_ids=GUILD_IDS)
     async def hp(self,
                  ctx: SlashContext,
                  level: int,

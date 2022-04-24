@@ -7,7 +7,7 @@ from discord_slash import SlashContext, cog_ext
 # The below will `import discord` and override some of its stuff
 from discord_slash.dpy_overrides import *
 from discord_slash.model import SlashCommandOptionType
-from env import HOME_ID, TEST_ID
+from env import GUILD_IDS, HOME_ID, TEST_ID
 
 ROOT_DIR=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESOURCE_DIR=os.path.join(ROOT_DIR, 'resources')
@@ -20,7 +20,7 @@ class NPCCog(commands.Cog):
 
     @cog_ext.cog_slash(name='npc',
                        description="A quick NPC flavour generator",
-                       guild_ids=[TEST_ID, HOME_ID])
+                       guild_ids=GUILD_IDS)
     async def random_npc(self,
                          ctx: SlashContext):
         npc = NPC.generate_random_npc()
@@ -36,7 +36,7 @@ class NPCCog(commands.Cog):
                                  "description": "An adjective to describe this NPC",
                                  "type": SlashCommandOptionType.STRING,
                                  "required": True}],
-                       guild_ids=[TEST_ID, HOME_ID])
+                       guild_ids=GUILD_IDS)
     async def add_adjective(self,
                             ctx: SlashContext,
                             adj: str = None):
@@ -61,7 +61,7 @@ class NPCCog(commands.Cog):
                                  "description": "Interesting NPC quirk",
                                  "type": SlashCommandOptionType.STRING,
                                  "required": True}],
-                       guild_ids=[TEST_ID, HOME_ID])
+                       guild_ids=GUILD_IDS)
     async def add_quirk(self, ctx: SlashContext, quirk: str = None):
         '''
         '''
@@ -86,7 +86,7 @@ class NPCCog(commands.Cog):
                                  "description": "Remember that time when...",
                                  "type": SlashCommandOptionType.STRING,
                                  "required": True}],
-                       guild_ids=[TEST_ID, HOME_ID])
+                       guild_ids=GUILD_IDS)
     async def add_memory(self,
                          ctx: SlashContext,
                          memory: str = None):
@@ -107,7 +107,7 @@ class NPCCog(commands.Cog):
 
     @cog_ext.cog_slash(name='memoryrecall',
                        description="Remember that time when...",
-                       guild_ids=[TEST_ID, HOME_ID])
+                       guild_ids=GUILD_IDS)
     async def recall_memory(self,
                             ctx: SlashContext):
         with open(os.path.join(RESOURCE_DIR,'memories.txt'), 'r') as f:

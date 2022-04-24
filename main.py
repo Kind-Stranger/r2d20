@@ -198,7 +198,7 @@ def main():
                        'description': 'Debugging flag',
                        'type': SlashCommandOptionType.BOOLEAN,
                        "required": False}],
-             guild_ids=[TEST_ID])
+             guild_ids=[HOME_ID])
 @commands.is_owner()
 async def load_cog(ctx: SlashContext, name: str, debug: bool = False):
     try:
