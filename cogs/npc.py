@@ -7,7 +7,7 @@ from discord_slash import SlashContext, cog_ext
 # The below will `import discord` and override some of its stuff
 from discord_slash.dpy_overrides import *
 from discord_slash.model import SlashCommandOptionType
-from env import GUILD_IDS, HOME_ID, TEST_ID
+from env import GUILD_IDS
 
 ROOT_DIR=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESOURCE_DIR=os.path.join(ROOT_DIR, 'resources')

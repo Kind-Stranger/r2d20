@@ -15,7 +15,7 @@ from discord_slash.model import ButtonStyle
 # The below will `import discord` and override some of its stuff
 from discord_slash.dpy_overrides import *
 
-from env import GUILD_IDS, misc_emojis, TEST_ID, HOME_ID
+from env import GUILD_IDS, misc_emojis
 from utils.players import gather_players
 from utils.players import PlayerBase
 
