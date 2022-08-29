@@ -1,9 +1,9 @@
 # Works with Python 3.8
 #
-import math
 import re
 import sys
 import traceback
+import sys
 
 from discord.ext import commands
 from discord_slash import SlashCommand, SlashContext
