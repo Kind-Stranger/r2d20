@@ -185,6 +185,8 @@ class GenericDiceGame:
         self.game_msg = None
         self.game_owner = self.ctx.author
         self.players = [self.game_owner]
+        self.how_clicked = False
+
 
 
     async def get_players(self):
@@ -210,11 +212,10 @@ class GenericDiceGame:
         try:
             await self.get_players()
             embed = self.game_msg.embeds[0]
-            game_msg = self.game_msg
             # Roll init_dice
             if self.init_dice:
                 self.roll_init_dice()
-                await game_msg.edit(embeds=[embed])
+                await self.game_msg.edit(embeds=[embed])
                 #
             #
             embed.add_field(name='Target',
@@ -225,24 +226,23 @@ class GenericDiceGame:
                 style=ButtonStyle.green,
                 label='ROLL',
                 emoji=self.dice_emoji,
-                custom_id=f'roll_{game_msg.id}',
+                custom_id=f'roll_{self.game_msg.id}',
             )
             stand_btn = create_button(
                 style=ButtonStyle.red,
                 label='STAND',
                 emoji=misc_emojis['stop_sign'],
-                custom_id=f'stand_{game_msg.id}',
+                custom_id=f'stand_{self.game_msg.id}',
             )
             how_btn = create_button(
                 style=ButtonStyle.gray,
                 label='HOW TO PLAY',
                 emoji=misc_emojis['question'],
-                custom_id=f'how_{game_msg.id}',
+                custom_id=f'how_{self.game_msg.id}',
             )
 
             actionrow = create_actionrow(roll_btn, stand_btn, how_btn)
 
-            how_clicked = False
             def player_in_game(ctx: ComponentContext):
                 return ctx.author_id in [ player.id for player in self.players ]
 
@@ -256,32 +256,32 @@ class GenericDiceGame:
                         actionrow = create_actionrow(roll_btn,
                                                      stand_btn,
                                                      how_btn)
-                        await game_msg.edit(components=[actionrow])
+                        await self.game_msg.edit(components=[actionrow])
                         time.sleep(2)
 
                         roll_btn['disabled'] = False
                         stand_btn['disabled'] = False
-                        if not how_clicked:
+                        if not self.how_clicked:
                             how_btn['disabled'] = False
                         #
                         actionrow = create_actionrow(roll_btn,
                                                      stand_btn,
                                                      how_btn)
-                        await game_msg.edit(components=[actionrow])
+                        await self.game_msg.edit(components=[actionrow])
                     #
-                    p = self.players[pos]
-                    result_str = ' : '.join([f'{self.init_dice_emoji}{roll}'
-                                                 for roll in p.rolls])
+                    player = self.players[pos]
                     field = embed.fields[pos]
-                    embed.set_footer(text=f"{p.display_name}, you're up!")
-                    await game_msg.edit(embeds=[embed],
+                    result_str = ' : '.join([f'{self.init_dice_emoji}{roll}'
+                                                 for roll in player.rolls])
+                    embed.set_footer(text=f"{player.display_name}, you're up!")
+                    await self.game_msg.edit(embeds=[embed],
                                         components=[actionrow])
 
                     while 1:
                         # Users must be in the game to plress a button
                         btn_ctx: ComponentContext = \
                             await wait_for_component(self.bot,
-                                                     messages=[game_msg],
+                                                     messages=[self.game_msg],
                                                      components=[actionrow],
                                                      check=player_in_game,
                                                      timeout=int(self.timeout))
@@ -357,11 +357,11 @@ class GenericDiceGame:
                     win = 'No winners!!'
                 #
                 embed.set_footer(text=win)
-                await game_msg.edit(embeds=[embed], components=[])
+                await self.game_msg.edit(embeds=[embed], components=[])
             finally:
                 try:
                     # Remove the buttons
-                    await game_msg.edit(components=[])
+                    await self.game_msg.edit(components=[])
                 except Exception:
                     pass
             if random.randint(1,100) == 1:
@@ -383,7 +383,7 @@ class GenericDiceGame:
             pass
 
     def roll_init_dice(self):
-        """Roll initial dice for each player"""
+        """Roll initial dice for all players"""
         embed = self.game_msg.embeds[0]
         for pos in range(len(self.players)):
             player = self.players[pos]
