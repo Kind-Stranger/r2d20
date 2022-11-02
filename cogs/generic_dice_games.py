@@ -209,24 +209,11 @@ class GenericDiceGame:
     async def play_game(self):
         try:
             await self.get_players()
-            players = self.players
+            embed = self.game_msg.embeds[0]
             game_msg = self.game_msg
-            embed = game_msg.embeds[0]
             # Roll init_dice
             if self.init_dice:
-                for pos in range(len(players)):
-                    p = players[pos]
-                    for _ in range(int(self.init_dice)):
-                        p.roll(int(self.init_dice_sides))
-                    #
-                    field = embed.fields[pos]
-                    result_str = ' : '.join([f'{self.init_dice_emoji}{roll}'
-                                                 for roll in p.rolls])
-                    field.value = f'{result_str}\n**Score: {p.score}**\n'
-                    embed.set_field_at(pos,
-                                       name=field.name,
-                                       value=field.value,
-                                       inline=field.inline)
+                self.roll_init_dice()
                 await game_msg.edit(embeds=[embed])
                 #
             #
@@ -257,10 +244,10 @@ class GenericDiceGame:
 
             how_clicked = False
             def player_in_game(ctx: ComponentContext):
-                return ctx.author_id in [ player.id for player in players ]
+                return ctx.author_id in [ player.id for player in self.players ]
 
             try:
-                for pos in range(len(players)):
+                for pos in range(len(self.players)):
                     if pos>0:
                         # Take a quick breather between players
                         roll_btn['disabled'] = True
@@ -282,7 +269,7 @@ class GenericDiceGame:
                                                      how_btn)
                         await game_msg.edit(components=[actionrow])
                     #
-                    p = players[pos]
+                    p = self.players[pos]
                     result_str = ' : '.join([f'{self.init_dice_emoji}{roll}'
                                                  for roll in p.rolls])
                     field = embed.fields[pos]
@@ -333,7 +320,7 @@ class GenericDiceGame:
                             if p.score >= self.score_limit:
                                 if self.variant_rules and \
                                    p.score == self.score_limit:
-                                    all_scores = sorted(p.score for p in players)
+                                    all_scores = sorted(p.score for p in self.players)
                                     while self.score_limit in all_scores:
                                         self.score_limit += 1
                                     #
@@ -356,10 +343,10 @@ class GenericDiceGame:
                         #
                     #
                 #
-                not_bust = [p for p in players if p.score <= self.score_limit]
+                not_bust = [p for p in self.players if p.score <= self.score_limit]
                 if not_bust:
                     max_score = max([p.score for p in not_bust])
-                    winners=[p.display_name for p in players 
+                    winners=[p.display_name for p in self.players 
                              if p.score == max_score]
                     if len(winners) > 1:
                         win = f'{" and ".join(winners)} tied on {max_score}!'
@@ -394,7 +381,26 @@ class GenericDiceGame:
         except discord.errors.NotFound:
             # Deleted the ctx?
             pass
-    
+
+    def roll_init_dice(self):
+        """Roll initial dice for each player"""
+        embed = self.game_msg.embeds[0]
+        for pos in range(len(self.players)):
+            player = self.players[pos]
+            for _ in range(int(self.init_dice)):
+                player.roll(int(self.init_dice_sides))
+            #
+            field = embed.fields[pos]
+            result_str = ' : '.join([f'{self.init_dice_emoji}{roll}'
+                                        for roll in player.rolls])
+            field.value = f'{result_str}\n**Score: {player.score}**\n'
+            embed.set_field_at(pos,
+                               name=field.name,
+                               value=field.value,
+                               inline=field.inline)
+        #
+
+
 class GenericDicePlayer(PlayerBase):
     def __init__(self, member: discord.Member):
         super().__init__(member)
