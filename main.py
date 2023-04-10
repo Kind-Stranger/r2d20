@@ -174,7 +174,10 @@ def main():
     global bot
 
     # Load the Cogs
-    cogs = ['generic_dice_games',
+    cogs = ['baldurs_bones',
+            'kobolds_knuckles',
+            'kobolds_knuckles_variant',
+            'baldurs_bones_variant',
             'npc',
             'rolls']
     for cog in cogs:

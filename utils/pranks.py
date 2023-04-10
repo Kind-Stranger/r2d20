@@ -2,7 +2,6 @@ import random
 import sys
 import time
 
-
 async def scramble_nickname(user):
     sys.stdout.write(f'scrambling {user.display_name}...\n')
     sys.stdout.flush()

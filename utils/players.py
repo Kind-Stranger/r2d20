@@ -27,8 +27,7 @@ class PlayerBase:
 
 async def gather_players(bot,
                          *,
-                         game_msg: discord.Message,
-                         game_owner: discord.Member = None,
+                         game = None,
                          existing_players: List[discord.Member] = None,
                          max_players: int = None,
                          timeout: int = None):
@@ -38,7 +37,9 @@ async def gather_players(bot,
 
     :raises: asyncio.TimeoutError
     """
-    embed = game_msg.embeds[0]
+    game_msg = game.game_msg
+    game_owner = game.game_owner
+    embed = game.embed
     if existing_players:
         players = list(existing_players)
         player_ids = {p.id:0 for p in existing_players}
