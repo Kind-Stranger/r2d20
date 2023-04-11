@@ -6,6 +6,9 @@ from utils.generic_dice_games import GenericDiceGame
 
 
 class KKVariantCog(commands.Cog):
+    """Generic Dice Game using 'Variant Rules'
+    Starts with 1d6 and continues with d4 rolls to a target of 10
+    """
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         

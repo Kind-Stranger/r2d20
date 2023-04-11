@@ -13,8 +13,7 @@ ROOT_DIR=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESOURCE_DIR=os.path.join(ROOT_DIR, 'resources')
 
 class NPCCog(commands.Cog):
-    """NPC Generation Tools
-    """
+    """NPC Generation Tools"""
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 

@@ -6,6 +6,9 @@ from utils.generic_dice_games import GenericDiceGame
 
 
 class BBVariantCog(commands.Cog):
+    """Generic Dice Game using 'Variant Rules'
+    Starts with 3d6 and continues with d6 rolls to a target of 21
+    """
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 

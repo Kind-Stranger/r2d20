@@ -24,15 +24,14 @@ class DiceRollsCog(commands.Cog):
     async def roll(self,
                    ctx: SlashContext,
                    dice_with_mods: str):
-        """Slash command for rolling dice using dice notation
-        """
-        orig = str(dice_with_mods).replace(' ','')
-        parsed = parse_roll(orig)
-        results = do_roll(parsed, self.bot.dice_emojis, isAprFool())
+        """Slash command for rolling dice using dice notation"""
+        diceNotationNoSpaces = str(dice_with_mods).replace(' ','')
+        parsedNotation = parse_roll(diceNotationNoSpaces)
+        results = do_roll(parsedNotation, self.bot.dice_emojis, isAprFool())
         question = ''.join([r[0] for r in results])
         question = emoji_replace(question, self.bot.dice_emojis, to_emoji=True)
         answer = eval(''.join([r[1] for r in results]))
-        embed = discord.Embed(title=f'{orig}',
+        embed = discord.Embed(title=f'{diceNotationNoSpaces}',
                               description=f'{question} = {answer}')
         embed.set_author(name=ctx.author.display_name,
                          icon_url=ctx.author.avatar_url)
@@ -43,8 +42,7 @@ class DiceRollsCog(commands.Cog):
                        guild_ids=GUILD_IDS)
     async def rollstats(self,
                         ctx: SlashContext):
-        """Slash command for rolling a new set of six stats
-        """
+        """Slash command for rolling a new set of six stats"""
         if isAprFool():
             results = [3]*6 # Minimum possible on April Fool's
         else:
@@ -77,8 +75,7 @@ class DiceRollsCog(commands.Cog):
                  level: int,
                  hit_dice_sides: int,
                  con_mod: str):
-        """Roll hit points the way we like it
-        """
+        """Roll hit points the way we like it"""
         results = roll_hp(level, hit_dice_sides)
         max_hp = sum(results)
         try:
