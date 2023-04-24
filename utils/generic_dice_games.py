@@ -114,24 +114,7 @@ class GenericDiceGame:
         self.game_owner = self.ctx.author
         self.players = [self.game_owner]
         self.how_clicked = False
-
-
-    async def get_players(self):
-        self.embed = discord.Embed(title=str(self.title),
-                              colour=discord.Colour.random())
-        self.embed.set_author(name=self.game_owner.display_name,
-                              icon_url=self.game_owner.avatar_url)
-        # Picture of dice
-        self.embed.set_thumbnail(url='https://i.imgur.com/uCMhejd.png')
-        self.game_msg = await self.ctx.send(embed=self.embed)
-
-        # Gather players
-        self.players = [ GenericDicePlayer(member) for member in
-                         await gather_players(self.bot,
-                                              game = self,
-                                              existing_players = self.players,
-                                              max_players = int(self.max_players),
-                                              timeout = int(self.timeout)) ]
+        self.actionrow = None
 
     async def play_game(self):
         try:
@@ -147,8 +130,7 @@ class GenericDiceGame:
                 await self.output_game_result()
             finally:
                 try:
-                    # Remove the buttons
-                    await self.game_msg.edit(components=[])
+                    await self.game_msg.edit(components=[]) # Remove buttons
                 except Exception:
                     pass
             if random.randint(1,100) == 1:
@@ -164,12 +146,11 @@ class GenericDiceGame:
                 sys.stderr.write('No game_msg')
             #
             sys.stderr.flush()
-        #
-        except discord.errors.NotFound:
-            # Deleted the ctx?
+        except discord.errors.NotFound: # Deleted the ctx?
             pass
 
     async def setup_game(self):
+        await self.init_embed()
         await self.get_players()
         self.roll_init_dice()
         self.embed.add_field(name='Target',
@@ -177,7 +158,24 @@ class GenericDiceGame:
                              inline=False)
         await self.init_buttons()
 
-    async def take_player_turn(self, player_index):
+    async def init_embed(self):
+        self.embed = discord.Embed(title=str(self.title),
+                                   colour=discord.Colour.random())
+        self.embed.set_author(name=self.game_owner.display_name,
+                              icon_url=self.game_owner.avatar_url)
+        self.embed.set_thumbnail(url='https://i.imgur.com/uCMhejd.png') # Dice
+        self.game_msg = await self.ctx.send(embed=self.embed)
+
+    async def get_players(self):
+        self.players = [ GenericDicePlayer(member) for member in
+                         await gather_players(self.bot,
+                                              game = self,
+                                              existing_players = self.players,
+                                              max_players = int(self.max_players),
+                                              timeout = int(self.timeout)) ]
+
+    async def take_player_turn(self, player_index: int):
+        self.current_player = player
         player = self.players[player_index]
         field = self.embed.fields[player_index]
         result_str = ' : '.join([f'{self.init_dice_emoji}{roll}'
@@ -198,16 +196,16 @@ class GenericDiceGame:
                 # HOW TO PLAY pressed
                 q = misc_emojis['question']
                 self.embed.add_field(name=f'{q} ***How To Play*** {q}',
-                                value=str(self.how_to_play),
-                                inline=False)
+                                     value=str(self.how_to_play),
+                                     inline=False)
                 how_clicked = True
                 self.how_btn['disabled'] = True
                 await self.update_actionrow()
                 await btn_ctx.edit_origin(embeds=[self.embed],
-                                            components=[self.actionrow])
-            elif self.roll_btn['custom_id'] == btn_ctx.custom_id and \
-                    btn_ctx.author_id == player.id:
-                # ROLL pressed
+                                          components=[self.actionrow])
+            if btn_ctx.author_id != player.id:
+                continue
+            if self.roll_btn['custom_id'] == btn_ctx.custom_id:
                 roll = player.roll(int(self.dice_sides))
                 self.embed.set_footer(text=f'{player.display_name} rolled {roll}')
                 
@@ -242,9 +240,7 @@ class GenericDiceGame:
                                             value=str(self.score_limit),
                                             inline=False)
                     break
-            elif self.stand_btn['custom_id'] == btn_ctx.custom_id and \
-                    btn_ctx.author_id == player.id:
-                # STAND pressed
+            elif self.stand_btn['custom_id'] == btn_ctx.custom_id:
                 self.embed.set_footer(text=f'{player.display_name} stands on {player.score}')
                 await btn_ctx.edit_origin(embeds=[self.embed])
                 break
@@ -253,29 +249,27 @@ class GenericDiceGame:
         return ctx.author_id in [ player.id for player in self.players ]
 
     async def init_buttons(self):
-        self.roll_btn = create_button(
-            style=ButtonStyle.green,
-            label='ROLL',
-            emoji=self.dice_emoji,
-            custom_id=f'roll_{self.game_msg.id}',
-        )
-        self.stand_btn = create_button(
-            style=ButtonStyle.red,
-            label='STAND',
-            emoji=misc_emojis['stop_sign'],
-            custom_id=f'stand_{self.game_msg.id}',
-        )
-        self.how_btn = create_button(
-            style=ButtonStyle.gray,
-            label='HOW TO PLAY',
-            emoji=misc_emojis['question'],
-            custom_id=f'how_{self.game_msg.id}',
-        )
+        """Setup buttons for player's turn"""
+        self.roll_btn = create_button(style=ButtonStyle.green,
+                                      label='ROLL',
+                                      emoji=self.dice_emoji,
+                                      custom_id=f'roll_{self.game_msg.id}')
+        self.stand_btn = create_button(style=ButtonStyle.red,
+                                       label='STAND',
+                                       emoji=misc_emojis['stop_sign'],
+                                       custom_id=f'stand_{self.game_msg.id}')
+        self.how_btn = create_button(style=ButtonStyle.gray,
+                                     label='HOW TO PLAY',
+                                     emoji=misc_emojis['question'],
+                                     custom_id=f'how_{self.game_msg.id}')
         self.buttons = [self.roll_btn, self.stand_btn, self.how_btn]
         await self.update_actionrow()
 
     async def update_actionrow(self):
-        self.actionrow = create_actionrow(*self.buttons)
+        """Output updated buttons"""
+        if not self.actionrow:
+            self.actionrow = create_actionrow(*self.buttons)
+        await self.game_msg.edit(components=[self.actionrow])
 
     def roll_init_dice(self):
         """Roll initial dice for all players"""
@@ -296,23 +290,26 @@ class GenericDiceGame:
                                     inline=field.inline)
                                     
     async def pause_for(self, secs: int):
+        """Disable all buttons for a given time, then restore"""
         await self.disable_all_buttons()
-        time.sleep(2)
+        time.sleep(secs)
         await self.enable_all_buttons()
-        await self.game_msg.edit(components=[self.actionrow])
 
     async def disable_all_buttons(self):
+        """Disable all buttons"""
         for button in self.buttons:
             button['disabled'] = True
         await self.update_actionrow()
 
     async def enable_all_buttons(self):
+        """Enable all buttons (except "How To Play" if already clicked)"""
         for button in self.buttons:
             if button != self.how_btn or not self.how_clicked:
                 button['disabled'] = False
         await self.update_actionrow()
 
     async def update_embed(self):
+        """Output updated embed"""
         await self.game_msg.edit(embeds=[self.embed])
 
     async def output_game_result(self):
@@ -334,6 +331,7 @@ class GenericDiceGame:
 
 
 class GenericDicePlayer(PlayerBase):
+    """Keeps score in the dice game for a discord.Member"""
     def __init__(self, member: discord.Member):
         super().__init__(member)
         self.score = 0

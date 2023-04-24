@@ -97,4 +97,3 @@ async def gather_players(bot,
             await game.game_msg.edit(components=[]) # Remove buttons
     #
     return players
-
