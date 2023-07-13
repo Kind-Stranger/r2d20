@@ -1,7 +1,7 @@
 # r2d20
 Discord Bot with various D&amp;D related features
 
-Tested with Python 3.8.0
+Tested with Python 3.8.0.
 
 Required packages:
  * discord.py (version 1.7.3)               https://discordpy.readthedocs.io/en/stable/
