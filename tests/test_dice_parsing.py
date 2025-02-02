@@ -6,12 +6,26 @@ from utils.dice.parsing import NOTATION_PATTERN, DiceNotationParser, ParsedDice
 class TestDiceNotationParser(unittest.TestCase):
 
     def test_parse(self):
-        notation = "d20"
-        parser = DiceNotationParser(notation=notation)
-        parser._parse()
-        expected_parsed = [ParsedDice(notation=notation,
-                                      dice_type=20)]
-        self.assertListEqual(parser._parsed, expected_parsed)
+        test_cases = [
+            ("d20", [ParsedDice(notation="d20", dice_type=20)]),
+            ("3d6", [ParsedDice(notation="3d6", num_dice=3, dice_type=6)]),
+            ("d20@adv", [ParsedDice(notation="d20@adv",
+                                    dice_type=20, advantage="@adv")]),
+            ("d8+d4", [ParsedDice(notation="d8+", dice_type=8, more="+"),
+                       ParsedDice(notation="d4", dice_type=4)]),
+            ("2d20kl1min5+2- 4d4d2+6+ 8d8+9",
+             [ParsedDice(notation="2d20kl1min5+2-", num_dice=2, dice_type=20,
+                         keep_drop="k", high_low="l", kd_num_dice=1, min_max="min",
+                         m_score=5, modifier="+2", more="-"),
+              ParsedDice(notation="4d4d2+6+", num_dice=4, dice_type=4,
+                         keep_drop="d", kd_num_dice=2, modifier="+6", more="+"),
+              ParsedDice(notation="8d8+9", num_dice=8, dice_type=8, modifier="+9")])
+        ]
+        for full_notation, expected in test_cases:
+            with self.subTest(value=full_notation):
+                parser = DiceNotationParser(notation=full_notation)
+                parser._parse()
+                self.assertListEqual(parser._parsed, expected)
 
 
 class TestNotationPattern(unittest.TestCase):
@@ -23,7 +37,7 @@ class TestNotationPattern(unittest.TestCase):
             "d20@adv",
             "4d6k3",
             "2d20kl1",
-            "4d8min5+10"
+            "4d8min5+10",
         ]
         for text in test_cases:
             with self.subTest(value=text):
