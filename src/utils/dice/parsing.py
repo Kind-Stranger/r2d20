@@ -21,6 +21,9 @@ NOTATION_PATTERN = r'''(?x)^
 
 @dataclass
 class ParsedDice:
+    """Data class for holding results of name groups match by
+    notation pattern
+    """
     notation: str  # The matched portion of the notation
     dice_type: int | str  # str only used for fudge/fate dice
     num_dice: int = 1
@@ -37,32 +40,43 @@ class ParsedDice:
 class ParsedDiceRoller:
 
     def __init__(self, parsed_dice: ParsedDice):
+        """Validate and roll parsed dice
+
+        Args:
+            parsed_dice (ParsedDice): parsed dice
+        """
         self.pd = parsed_dice
-        self._raw_results = None
-        self._results = None
-        self._total = 0
+        self._raw_results: list[int] = None
+        self._results: list[int] = None
+        self._total: int = 0
         self.validate()
         self.roll()
 
     @property
-    def raw_results(self) -> list:
+    def raw_results(self) -> list[int]:
+        """Raw dice rolls"""
         return self._raw_results
 
     @property
-    def results(self) -> list:
+    def results(self) -> list[int]:
+        """Individual die results after keep/drop applied"""
         return self._results
 
     @property
     def total(self) -> int:
+        """Total value of these dice with all parameters applied"""
         return self._total
 
     def validate(self):
+        """Check the limitations on the parsed dice"""
         if self.pd.num_dice > 100:
             raise ValueError("Can't roll this many dice")
         if self.pd.dice_type > 1000:
             raise ValueError("Can't roll dice this big")
 
     def roll(self):
+        """Roll the parsed dice, applying the other parameeters and
+        setting the total"""
         num_dice = self.pd.num_dice
         if self.pd.advantage:
             num_dice = 2
@@ -112,17 +126,24 @@ class ParsedDiceRoller:
 
 class DiceNotationParser:
     def __init__(self, notation: str):
-        self.orig_notation = str(notation)
-        self._parsed: list[ParsedDice] = []
-        self._rolled = []
-        self.results = []
-        self.total = 0
+        """Parser of dice notation
+
+        Args:
+            notation (str): dice notation
+        """        
+        self.orig_notation: str = str(notation)
+        self._parsed: list[ParsedDice] = None
+        self._rolled: list[ParsedDiceRoller] = None
+        self.results: list[int] = None
+        self.total: int = 0
 
     def process(self):
+        """Process the dice notation"""
         self._parse()
         self._calculate_results()
 
     def _parse(self):
+        """Parse dice notation and add to parsed list"""
         notation = self.orig_notation.replace(' ', '').lower()
         pos = 0
         while pos < len(notation):
@@ -140,6 +161,7 @@ class DiceNotationParser:
             self._parsed.append(pd)
 
     def _calculate_results(self):
+        """Roll the parsed dice and append to results and set total"""
         for parsed_dice in self._parsed:
             roller = ParsedDiceRoller(parsed_dice)
             self._rolled.append(roller)
