@@ -1,7 +1,12 @@
+import logging
 import random
 import re
 
 from dataclasses import dataclass
+
+import discord
+
+logger = logging.getLogger()
 
 NOTATION_PATTERN = r'''(?x)^
     (?P<num_dice>\d+)?          # Number of dice                (optional)
@@ -17,6 +22,9 @@ NOTATION_PATTERN = r'''(?x)^
     (?P<modifier>(?:[*/+-]\d+(?!d))+)? # Modifier               (optional)
     (?P<more>[*/+-])?           # Pssibly more dice
 '''
+
+class NotationException(Exception):
+    pass
 
 
 @dataclass
@@ -46,8 +54,8 @@ class ParsedDiceRoller:
             parsed_dice (ParsedDice): parsed dice
         """
         self.pd = parsed_dice
-        self._raw_results: list[int] = None
-        self._results: list[int] = None
+        self._raw_results: list[int] = []
+        self._results: list[int] = []
         self._total: int = 0
         self.validate()
         self.roll()
@@ -68,11 +76,15 @@ class ParsedDiceRoller:
         return self._total
 
     def validate(self):
-        """Check the limitations on the parsed dice"""
+        """Check the limitations on the parsed dice
+        
+        Raises:
+            NotationException: too many dice or sides
+        """
         if self.pd.num_dice > 100:
-            raise ValueError("Can't roll this many dice")
-        if self.pd.dice_type > 1000:
-            raise ValueError("Can't roll dice this big")
+            raise NotationException("Can't roll this many dice")
+        if isinstance(self.pd.dice_type, int) and self.pd.dice_type > 1000:
+            raise NotationException("Can't roll dice this big")
 
     def roll(self):
         """Roll the parsed dice, applying the other parameeters and
@@ -96,12 +108,16 @@ class ParsedDiceRoller:
             self._results = sorted_results[-1:]
         elif self.pd.advantage == '@dis':
             self._results = sorted_results[:1]
-        elif (self.pd.keep_drop == 'k' and self.pd.high_low in ['h', None]) or\
-             (self.pd.keep_drop == 'd' and self.pd.high_low in ['l', None]):
+        elif (self.pd.keep_drop == 'k' and self.pd.high_low in ['h', None]):
             drop_lowest = len(sorted_results) - self.pd.kd_num_dice
             self._results = sorted_results[drop_lowest:]
-        elif self.pd.keep_drop:
+        elif (self.pd.keep_drop == 'k' and self.pd.high_low == 'l'):
             self._results = sorted_results[:self.pd.kd_num_dice]
+        elif (self.pd.keep_drop == 'd' and self.pd.high_low == 'h'):
+            drop_highest = len(sorted_results) - self.pd.kd_num_dice
+            self._results = sorted_results[:drop_highest]
+        elif (self.pd.keep_drop == 'd' and self.pd.high_low in ['l', None]):
+            self._results = sorted_results[self.pd.kd_num_dice:]
         else:
             self._results = self._raw_results
         #
@@ -132,9 +148,9 @@ class DiceNotationParser:
             notation (str): dice notation
         """        
         self.orig_notation: str = str(notation)
-        self._parsed: list[ParsedDice] = None
-        self._rolled: list[ParsedDiceRoller] = None
-        self.results: list[int] = None
+        self.parsed: list[ParsedDice] = []
+        self.rolled: list[ParsedDiceRoller] = []
+        self.results: list[int] = []
         self.total: int = 0
 
     def process(self):
@@ -143,13 +159,18 @@ class DiceNotationParser:
         self._calculate_results()
 
     def _parse(self):
-        """Parse dice notation and add to parsed list"""
+        """Parse dice notation and add to parsed list
+        
+        Raises:
+            NotationException: Invalid dice notation
+        """
         notation = self.orig_notation.replace(' ', '').lower()
         pos = 0
         while pos < len(notation):
             match = re.search(NOTATION_PATTERN, notation[pos:])
             if match is None:
-                raise ValueError(f"Invalid dice notation: {self.orig_notation}")
+                raise NotationException(
+                    f"Invalid dice notation: {self.orig_notation}")
             groupdict = {}
             for name, value in match.groupdict().items():
                 if value is None:
@@ -158,12 +179,39 @@ class DiceNotationParser:
                 groupdict[name] = val
             pd = ParsedDice(match.group(0), **groupdict)
             pos += len(match.group(0))
-            self._parsed.append(pd)
+            self.parsed.append(pd)
 
     def _calculate_results(self):
         """Roll the parsed dice and append to results and set total"""
-        for parsed_dice in self._parsed:
+        for parsed_dice in self.parsed:
             roller = ParsedDiceRoller(parsed_dice)
-            self._rolled.append(roller)
+            self.rolled.append(roller)
             self.results.append(roller.total)
         self.total = sum(self.results)
+
+
+def create_embed_from_notation(notation: str) -> discord.Embed:
+    parser = DiceNotationParser(notation)
+    parser.process()
+    with_results = [insert_result(dice.pd.notation, dice.raw_results, dice.results)
+                    for dice in parser.rolled]
+    with_results = f'{"".join(with_results)} = {parser.total}'
+    embed = discord.Embed(title=str(parser.total), description=with_results)
+    return embed
+
+
+def insert_result(notation: str,
+                  raw_results: list[int],
+                  results: list[int]) -> str:
+    match = re.match(r'^\d*d(\d+|f)', notation)
+    results_copy = results.copy()
+    decorated = []
+    for raw in raw_results:
+        if raw in results_copy:
+            results_copy.remove(raw)
+            decorated.append(f"**{raw}**")
+        else:
+            decorated.append(f"~~{raw}~~")
+    
+    decorated = str(decorated).replace("'", '')
+    return f"{notation[:match.end()]}{decorated}{notation[match.end():]}"
