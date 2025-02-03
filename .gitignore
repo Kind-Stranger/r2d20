@@ -132,3 +132,4 @@ dmypy.json
 # Seemed like a good idea at the time
 .vscode/
 config.py
+test_cog.py
