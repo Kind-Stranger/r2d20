@@ -96,3 +96,16 @@ class R2d20(commands.Bot):
                 await welcome_channel.send(self.welcome_txt)
             except discord.ClientException:
                 pass  # Oh well
+
+    async def wait_for_button_click(self, *,
+                                    message: discord.Message,
+                                    restrict_users: list[discord.Member] = None):
+        def check_button(ictx: discord.Interaction,
+                         button: discord.Button):
+            if restrict_users:
+                return ictx.user in restrict_users and ictx.message == message
+            return ictx.message == message
+        
+        interaction, button = \
+            await self.wait_for('button_click', check=check_button,
+                                timeout=180.0)
