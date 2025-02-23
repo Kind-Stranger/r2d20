@@ -1,3 +1,5 @@
+from typing import Any
+
 import logging
 from discord import Interaction, app_commands
 from discord.ext import commands
@@ -5,6 +7,12 @@ from discord.ext import commands
 from definitions import HOME_GUILD
 
 
+async def is_owner(ctx: Interaction):
+    return await ctx.client.is_owner(ctx.user)
+
+
+@app_commands.guilds(HOME_GUILD)
+@app_commands.check(is_owner)
 class CogLoaderCog(commands.GroupCog, group_name='cog'):
     """TODO: Add description"""
 
@@ -13,8 +21,6 @@ class CogLoaderCog(commands.GroupCog, group_name='cog'):
         self.logger = logging.getLogger(name=self.qualified_name)
 
     @app_commands.command()
-    @app_commands.guilds(HOME_GUILD)
-    @commands.is_owner()
     async def reload(self, ctx: Interaction, cog_name: str):
         successful = await self.bot.load_or_reload_extension(cog_name)
         await ctx.response.send_message(
