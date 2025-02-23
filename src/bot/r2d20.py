@@ -41,13 +41,12 @@ class R2d20(commands.Bot):
         for guild in TEST_GUILDS:
             self.logger.info("Syncing to test guild")
             try:
-                await self.sync_to_guild(guild.id)
+                await self.sync_to_guild(guild)
             except discord.DiscordException:
                 self.logger.error("Failed to sync command tree to guild")
 
-    async def sync_to_guild(self, guild_id: int):
+    async def sync_to_guild(self, guild: discord.Object):
         """Sync app_copmmands to a guild"""
-        guild = discord.Object(id=guild_id)
         self.tree.copy_global_to(guild=guild)
         await self.tree.sync(guild=guild)
 
