@@ -5,13 +5,14 @@ import discord
 from discord.utils import setup_logging
 from discord.ext import commands
 
-from definitions import COGS_DIR, RESOURCES_DIR, TEST_GUILDS
+from definitions import COGS_DIR, HOME_GUILD, RESOURCES_DIR, TEST_GUILDS
 try:
     import config
 except ImportError:
     config = None
 
-setup_logging()
+setup_logging(level=logging.DEBUG)
+
 
 class R2d20(commands.Bot):
     def __init__(self, command_prefix, *, intents: discord.Intents):
@@ -41,14 +42,10 @@ class R2d20(commands.Bot):
         for guild in TEST_GUILDS:
             self.logger.info("Syncing to test guild")
             try:
-                await self.sync_to_guild(guild)
+                self.tree.copy_global_to(guild=guild)
             except discord.DiscordException:
                 self.logger.error("Failed to sync command tree to guild")
-
-    async def sync_to_guild(self, guild: discord.Object):
-        """Sync app_copmmands to a guild"""
-        self.tree.copy_global_to(guild=guild)
-        await self.tree.sync(guild=guild)
+        await self.tree.sync(guild=HOME_GUILD)
 
     async def load_all_cogs(self):
         """Load every cog we can find"""
