@@ -8,6 +8,7 @@ from definitions import EMOJIS
 from utils.roll_utils import genstats
 from utils.dice.parsing import NotationException, create_embed_from_notation
 
+
 class DiceRolls(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -79,7 +80,7 @@ class DiceRolls(commands.Cog):
         embed = discord.Embed(title='Rolled New Stats',
                               description=results_str)
         embed.set_author(name=ctx.user.display_name,
-                        icon_url=ctx.user.avatar.url)
+                         icon_url=ctx.user.avatar.url)
         await ctx.response.send_message(embed=embed, ephemeral=hidden)
 
     async def cog_app_command_error(self,
@@ -88,7 +89,7 @@ class DiceRolls(commands.Cog):
         if isinstance(error, app_commands.CheckFailure):
             await ctx.response.send_message("You are not allowed to use this command")
         elif isinstance(error, app_commands.CommandInvokeError) and\
-             isinstance(error.original, NotationException):
+                isinstance(error.original, NotationException):
             await ctx.response.send_message(error.original.args[0])
         else:
             await ctx.response.send_message("There was a problem...")
