@@ -5,7 +5,7 @@ from discord import app_commands, Interaction
 from discord.ext import commands
 
 from definitions import EMOJIS
-from utils.roll_utils import genstats
+from utils.roll_utils import Advantage, genstats
 from utils.dice.parsing import NotationException, create_embed_from_notation
 
 
@@ -25,10 +25,13 @@ class DiceRolls(commands.Cog):
 
     @app_commands.command()
     @app_commands.describe(modifier="How much to add to the roll",
-                           hidden="Roll in secret?")
-    async def d20(self, ctx: Interaction, modifier: int = 0, hidden: bool = False):
+                           hidden="Roll in secret?",
+                           advantage="Roll at advantage or disadvantage")
+    async def d20(self, ctx: Interaction, modifier: int = 0, hidden: bool = False,
+                  advantage: Advantage = None):
         """Roll a d20"""
-        embed = embed_for_simple_roll(ctx, die=20, modifier=modifier)
+        embed = create_embed_for_simple_roll(ctx, die=20, modifier=modifier,
+                                             advantage=advantage)
         await ctx.response.send_message(embed=embed, ephemeral=hidden)
 
     @app_commands.command()
@@ -36,7 +39,7 @@ class DiceRolls(commands.Cog):
                            hidden="Roll in secret?")
     async def d12(self, ctx: Interaction, modifier: int = 0, hidden: bool = False):
         """Roll a d12"""
-        embed = embed_for_simple_roll(ctx, die=12, modifier=modifier)
+        embed = create_embed_for_simple_roll(ctx, die=12, modifier=modifier)
         await ctx.response.send_message(embed=embed, ephemeral=hidden)
 
     @app_commands.command()
@@ -44,7 +47,7 @@ class DiceRolls(commands.Cog):
                            hidden="Roll in secret?")
     async def d10(self, ctx: Interaction, modifier: int = 0, hidden: bool = False):
         """Roll a d10"""
-        embed = embed_for_simple_roll(ctx, die=10, modifier=modifier)
+        embed = create_embed_for_simple_roll(ctx, die=10, modifier=modifier)
         await ctx.response.send_message(embed=embed, ephemeral=hidden)
 
     @app_commands.command()
@@ -52,7 +55,7 @@ class DiceRolls(commands.Cog):
                            hidden="Roll in secret?")
     async def d8(self, ctx: Interaction, modifier: int = 0, hidden: bool = False):
         """Roll a d8"""
-        embed = embed_for_simple_roll(ctx, die=8, modifier=modifier)
+        embed = create_embed_for_simple_roll(ctx, die=8, modifier=modifier)
         await ctx.response.send_message(embed=embed, ephemeral=hidden)
 
     @app_commands.command()
@@ -60,7 +63,7 @@ class DiceRolls(commands.Cog):
                            hidden="Roll in secret?")
     async def d6(self, ctx: Interaction, modifier: int = 0, hidden: bool = False):
         """Roll a d6"""
-        embed = embed_for_simple_roll(ctx, die=6, modifier=modifier)
+        embed = create_embed_for_simple_roll(ctx, die=6, modifier=modifier)
         await ctx.response.send_message(embed=embed, ephemeral=hidden)
 
     @app_commands.command()
@@ -68,7 +71,7 @@ class DiceRolls(commands.Cog):
                            hidden="Roll in secret?")
     async def d4(self, ctx: Interaction, modifier: int = 0, hidden: bool = False):
         """Roll a d4"""
-        embed = embed_for_simple_roll(ctx, die=4, modifier=modifier)
+        embed = create_embed_for_simple_roll(ctx, die=4, modifier=modifier)
         await ctx.response.send_message(embed=embed, ephemeral=hidden)
 
     @app_commands.command()
@@ -96,16 +99,41 @@ class DiceRolls(commands.Cog):
             raise
 
 
-async def setup(bot):
+async def setup(bot: commands.Bot):
     await bot.add_cog(DiceRolls(bot))
 
 
-def embed_for_simple_roll(ctx: Interaction, die: int, modifier: int):
-    result = random.randint(1, die)
+def create_embed_for_simple_roll(ctx: Interaction, die: int, modifier: int,
+                                 advantage: Advantage = None) -> discord.Embed:
+    """Create and embed for a dice roll
+
+    Args:
+        ctx (Interaction): Discord Interaction context
+        die (int): type of die (number of sides)
+        modifier (int): Value tp add tp the result of the roll
+        advantage (Advantage, optional): Roll at advantage/disadvantage. Defaults to Advantage.NONE.
+
+    Returns:
+        discord.Embed: Embed displaying information about the roll and result
+    """
     mod_str = "" if modifier == 0 else f"{'+' if modifier >= 0 else '-'}{modifier}"
+    if advantage is None or advantage == Advantage.NONE:
+        roll = random.randint(1, die)
+        result = roll + modifier
+        result_str = f"[**{roll}**]{mod_str} = {result}"
+    elif advantage == Advantage.ADVANTAGE:
+        rolls = [random.randint(1, die) for _ in range(2)]
+        result = max(rolls) + modifier
+        result_str = f"[~~{min(rolls)}~~, **{result}**]{mod_str} = {result}"
+    elif advantage == Advantage.DISADVANTAGE:
+        rolls = [random.randint(1, die) for _ in range(2)]
+        result = min(rolls) + modifier
+        result_str = f"[~~{max(rolls)}~~, **{result}**]{mod_str} = {result}"
+    #
     emoji = ctx.client.get_emoji(EMOJIS[f"d{die}"])
+    result_str = f"{emoji or "Result:"} {result_str}"
     embed = discord.Embed(title=f"Rolled d{die}{mod_str}",
-                          description=f"{emoji or "Result:"} {result}")
+                          description=result_str)
     embed.set_author(name=ctx.user.display_name,
                      icon_url=ctx.user.avatar.url)
     return embed
