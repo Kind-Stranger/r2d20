@@ -23,6 +23,7 @@ NOTATION_PATTERN = r'''(?x)^
     (?P<more>[*/+-])?           # Pssibly more dice
 '''
 
+
 class NotationException(Exception):
     pass
 
@@ -46,7 +47,6 @@ class ParsedDice:
 
 
 class ParsedDiceRoller:
-
     def __init__(self, parsed_dice: ParsedDice):
         """Validate and roll parsed dice
 
@@ -77,7 +77,7 @@ class ParsedDiceRoller:
 
     def validate(self):
         """Check the limitations on the parsed dice
-        
+
         Raises:
             NotationException: too many dice or sides
         """
@@ -123,14 +123,15 @@ class ParsedDiceRoller:
         #
         self._total = sum(self._results)
 
+        mod_sign = self.pd.modifier[:1]
         if str(self.pd.modifier).startswith("+"):
             self._total += int(self.pd.modifier[1:])
         elif str(self.pd.modifier).startswith("-"):
-            self._total += int(self.pd.modifier[1:])
+            self._total -= int(self.pd.modifier[1:])
         elif str(self.pd.modifier).startswith("*"):
-            self._total += int(self.pd.modifier[1:])
+            self._total *= int(self.pd.modifier[1:])
         elif str(self.pd.modifier).startswith("/"):
-            self._total += int(self.pd.modifier[1:])
+            self._total /= int(self.pd.modifier[1:])
         #
         if str(self.pd.min_max).startswith("min") and\
            self.pd.m_score < int(self.pd.min_max[3:]):
@@ -146,7 +147,7 @@ class DiceNotationParser:
 
         Args:
             notation (str): dice notation
-        """        
+        """
         self.orig_notation: str = str(notation)
         self.parsed: list[ParsedDice] = []
         self.rolled: list[ParsedDiceRoller] = []
@@ -160,7 +161,7 @@ class DiceNotationParser:
 
     def _parse(self):
         """Parse dice notation and add to parsed list
-        
+
         Raises:
             NotationException: Invalid dice notation
         """
@@ -212,6 +213,6 @@ def insert_result(notation: str,
             decorated.append(f"**{raw}**")
         else:
             decorated.append(f"~~{raw}~~")
-    
+
     decorated = str(decorated).replace("'", '')
     return f"{notation[:match.end()]}{decorated}{notation[match.end():]}"
