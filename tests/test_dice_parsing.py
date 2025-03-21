@@ -25,7 +25,7 @@ class TestDiceNotationParser(unittest.TestCase):
             with self.subTest(value=full_notation):
                 parser = DiceNotationParser(notation=full_notation)
                 parser._parse()
-                self.assertListEqual(parser._parsed, expected)
+                self.assertListEqual(parser.parsed, expected)
 
 
 class TestNotationPattern(unittest.TestCase):
