@@ -6,6 +6,12 @@ from dataclasses import dataclass
 
 import discord
 
+__all__ = [
+    'NotationException',
+    'DiceNotationParser',
+    'create_embed_from_notation'
+]
+
 logger = logging.getLogger()
 
 NOTATION_PATTERN = r'''(?x)^
@@ -123,7 +129,6 @@ class ParsedDiceRoller:
         #
         self._total = sum(self._results)
 
-        mod_sign = self.pd.modifier[:1]
         if str(self.pd.modifier).startswith("+"):
             self._total += int(self.pd.modifier[1:])
         elif str(self.pd.modifier).startswith("-"):
