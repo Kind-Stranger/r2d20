@@ -1,6 +1,6 @@
 import unittest
 
-from utils.dice.parsing import NOTATION_PATTERN, DiceNotationParser, ParsedDice
+from r2d20.utils.dice.notation.parsing import NOTATION_PATTERN, DiceNotationParser, ParsedDice
 
 
 class TestDiceNotationParser(unittest.TestCase):
@@ -27,6 +27,22 @@ class TestDiceNotationParser(unittest.TestCase):
                 parser._parse()
                 self.assertListEqual(parser.parsed, expected)
 
+    def test_parseFails(self):
+        test_cases = [
+            "1",
+            "3d",
+            "d20@add",
+            "4d6k",
+            "d2d20kl1",
+            "2d20kl",
+            "4d8min"
+        ]
+        for case in test_cases:
+            with self.subTest(value=case):
+                with self.assertRaises(Exception):
+                    parser = DiceNotationParser(notation=case)
+                    parser._parse()
+
 
 class TestNotationPattern(unittest.TestCase):
 
@@ -39,10 +55,10 @@ class TestNotationPattern(unittest.TestCase):
             "2d20kl1",
             "4d8min5+10",
         ]
-        for text in test_cases:
-            with self.subTest(value=text):
-                self.assertRegex(text, NOTATION_PATTERN+"$",
-                                 f"'{text}' should match notation pattern")
+        for case in test_cases:
+            with self.subTest(value=case):
+                self.assertRegex(case, NOTATION_PATTERN+"$",
+                                 f"'{case}' should match notation pattern")
 
     def test_not_match_notation(self):
         test_cases = [
@@ -54,10 +70,10 @@ class TestNotationPattern(unittest.TestCase):
             "2d20kl",
             "4d8min"
         ]
-        for text in test_cases:
-            with self.subTest(value=text):
-                self.assertNotRegex(text, NOTATION_PATTERN+"$",
-                                    f"{text} should not match notation pattern")
+        for case in test_cases:
+            with self.subTest(value=case):
+                self.assertNotRegex(case, NOTATION_PATTERN+"$",
+                                    f"{case} should not match notation pattern")
 
 
 if __name__ == '__main__':

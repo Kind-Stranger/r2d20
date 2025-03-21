@@ -2,26 +2,34 @@ import logging
 import os
 
 import discord
-from discord.utils import setup_logging
 from discord.ext import commands
 
-from definitions import COGS_DIR, HOME_GUILD, RESOURCES_DIR, TEST_GUILDS
+from .utils.definitions import COGS_DIR, RESOURCES_DIR
 try:
     import config
 except ImportError:
     config = None
 
-setup_logging(level=logging.DEBUG)
+__all__ = ['bot', 'R2d20']
 
 
 class R2d20(commands.Bot):
-    def __init__(self, command_prefix, *, intents: discord.Intents):
+    def __init__(self, command_prefix='/', *, intents: discord.Intents):
         super().__init__(command_prefix, intents=intents)
         self.logger = logging.getLogger(name=self.__class__.__name__)
         self.help_command = commands.DefaultHelpCommand()
 
     async def on_ready(self):
         """Triggered by event when bot is logged in"""
+        # for guild in TEST_GUILDS:
+        #     self.logger.info("Syncing to test guild")
+        #     try:
+        #         self.tree.clear_commands(guild=guild)
+        #         self.tree.copy_global_to(guild=guild)
+        #         await self.tree.sync(guild=guild)
+        #     except discord.DiscordException:
+        #         self.logger.error("Failed to sync command tree to guild")
+        # await self.tree.sync()
         self.logger.info(f"Logged in as: {self.user}\n")
         self.logger.info(
             f"Using Discord Python API version {discord.__version__}\n")
@@ -29,6 +37,7 @@ class R2d20(commands.Bot):
     async def setup_hook(self):
         """Triggered before bot is logged in"""
         self.logger.debug("Executing setup hook")
+
         if hasattr(config, 'cogs') and config.cogs:
             for cog_name in config.cogs:
                 await self.load_extension(f'cogs.{cog_name}')
@@ -39,13 +48,6 @@ class R2d20(commands.Bot):
         with open(os.path.join(RESOURCES_DIR, "welcome.txt")) as f:
             self.welcome_txt = f.read().strip()
         #
-        for guild in TEST_GUILDS:
-            self.logger.info("Syncing to test guild")
-            try:
-                self.tree.copy_global_to(guild=guild)
-            except discord.DiscordException:
-                self.logger.error("Failed to sync command tree to guild")
-        await self.tree.sync(guild=HOME_GUILD)
 
     async def load_all_cogs(self):
         """Load every cog we can find"""
