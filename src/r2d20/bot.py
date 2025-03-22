@@ -4,13 +4,15 @@ import os
 import discord
 from discord.ext import commands
 
-from .utils.definitions import COGS_DIR, RESOURCES_DIR
+from definitions import COGS_DIR, EMOJIS, RESOURCES_DIR, TEST_GUILDS
 try:
     import config
 except ImportError:
     config = None
 
-__all__ = ['bot', 'R2d20']
+__all__ = ['R2d20']
+
+TEST_GUILDS: list[discord.Object]
 
 
 class R2d20(commands.Bot):
@@ -21,15 +23,6 @@ class R2d20(commands.Bot):
 
     async def on_ready(self):
         """Triggered by event when bot is logged in"""
-        # for guild in TEST_GUILDS:
-        #     self.logger.info("Syncing to test guild")
-        #     try:
-        #         self.tree.clear_commands(guild=guild)
-        #         self.tree.copy_global_to(guild=guild)
-        #         await self.tree.sync(guild=guild)
-        #     except discord.DiscordException:
-        #         self.logger.error("Failed to sync command tree to guild")
-        # await self.tree.sync()
         self.logger.info(f"Logged in as: {self.user}\n")
         self.logger.info(
             f"Using Discord Python API version {discord.__version__}\n")
@@ -37,11 +30,14 @@ class R2d20(commands.Bot):
     async def setup_hook(self):
         """Triggered before bot is logged in"""
         self.logger.debug("Executing setup hook")
-
         if hasattr(config, 'cogs') and config.cogs:
             for cog_name in config.cogs:
-                await self.load_extension(f'cogs.{cog_name}')
-                self.logger.info(f"Extension {cog_name} loaded")
+                try:
+                    await self.load_extension(f'cogs.{cog_name}')
+                    self.logger.info(f"Extension {cog_name} loaded")
+                except commands.ExtensionError:
+                    self.logger.exception(
+                        f"Failed to load extension: {cog_name}")
         else:
             await self.load_all_cogs()
         #
@@ -97,3 +93,21 @@ class R2d20(commands.Bot):
                 await welcome_channel.send(self.welcome_txt)
             except discord.ClientException:
                 pass  # Oh well
+
+    async def get_app_emoji_by_name(self, name: str) -> discord.Emoji | None:
+        """
+        Retrieve an application emoji by its name.
+
+        Args:
+            name (str): The name of the emoji to retrieve.
+
+        Returns:
+            discord.Emoji | None: The emoji object if found, otherwise None.
+        """
+        self.logger.debug(f"Fetching emoji by name: {name}")
+        id = EMOJIS.get(name)
+        if id is None:
+            self.logger.warning(f"Emoji not found in EMOJIS: {name}")
+            return
+        else:
+            return await self.fetch_application_emoji(id)
