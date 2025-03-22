@@ -3,7 +3,7 @@ import os
 
 import discord
 
-from .bot import R2d20
+from bot import R2d20
 
 
 def run_bot():
