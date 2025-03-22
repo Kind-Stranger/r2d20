@@ -24,17 +24,17 @@ class BotAdminCog(commands.GroupCog, group_name='bot'):
         guild = discord.Object(guild_id) if guild_id else ctx.guild
         self.bot.tree.clear_commands(guild=guild)
         await self.bot.tree.sync(guild=guild)
-        await ctx.response.edit_message("Synced")
+        await ctx.response.edit_message(content="Synced")
 
     @app_commands.command()
     async def sync_global(self, ctx: Interaction):
         """Sync the command tree"""
         await ctx.response.send_message("Syncing...", ephemeral=True)
         await self.bot.tree.sync()
-        await ctx.response.edit_message("Synced")
+        await ctx.response.edit_message(content="Synced")
 
     @app_commands.command()
-    async def log_level(self, ctx: Interaction, level: logging):
+    async def log_level(self, ctx: Interaction, level: str):
         """Set the bot's log level"""
         self.bot.logger.setLevel(level)
         await ctx.response.send_message(f"Set log level to {level}")
@@ -57,7 +57,7 @@ class BotAdminCog(commands.GroupCog, group_name='bot'):
         else:
             self.logger.exception(error)
             if ctx.response.is_done():
-                await ctx.response.edit_message("Unhandled error")
+                await ctx.response.edit_message(content="Unhandled error")
             else:
                 await ctx.response.send_message("Unhandled error", ephemeral=True)
 
