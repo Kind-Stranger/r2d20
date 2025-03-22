@@ -33,6 +33,12 @@ class BotAdminCog(commands.GroupCog, group_name='bot'):
         await self.bot.tree.sync()
         await ctx.response.edit_message("Synced")
 
+    @app_commands.command()
+    async def log_level(self, ctx: Interaction, level: logging):
+        """Set the bot's log level"""
+        self.bot.logger.setLevel(level)
+        await ctx.response.send_message(f"Set log level to {level}")
+
     async def cog_app_command_error(self,
                                 ctx: Interaction,
                                 error: app_commands.AppCommandError):
