@@ -84,10 +84,6 @@ class R2d20(commands.Bot):
     async def on_guild_join(self, guild: discord.Guild):
         """Triggered when bot joins a server"""
         self.logger.info("Joined a guild!")
-        try:
-            await self.sync_to_guild(guild.id)
-        except discord.DiscordException:
-            self.logger.exception("Failed to sync commands to new guild")
         if self.welcome_txt and (welcome_channel := guild.system_channel):
             try:  # Just try instead of checking permission
                 await welcome_channel.send(self.welcome_txt)
