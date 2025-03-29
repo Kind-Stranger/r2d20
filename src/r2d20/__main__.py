@@ -2,6 +2,7 @@ import logging
 import os
 
 import discord
+discord.voice_client.VoiceClient.warn_nacl = False
 
 from bot import R2d20
 
