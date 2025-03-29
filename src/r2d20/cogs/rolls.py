@@ -10,18 +10,19 @@ from utils.enums import Advantage
 from utils.roll_utils import genstats
 from utils.dice import NotationParseException, create_embed_from_notation
 
+logger = logging.getLogger(__name__)
+
 
 class DiceRolls(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot: R2d20 = bot
-        self.logger = logging.getLogger(name=self.qualified_name)
 
     @app_commands.command()
     @app_commands.describe(dice_notation="Dice notation (see help for more)",
                            hidden="Roll in secret?")
     async def roll(self, ctx: Interaction, dice_notation: str, hidden: bool = False):
         """Roll dice using dice notation"""
-        self.logger.debug(
+        logger.debug(
             f"Command /roll invoked with arguments: dice_notation={dice_notation}, hidden={hidden}")
         embed = create_embed_from_notation(dice_notation)
         embed.set_author(name=ctx.user.display_name,
@@ -83,7 +84,7 @@ class DiceRolls(commands.Cog):
     @app_commands.describe(hidden="Roll in secret?")
     async def newstats(self, ctx: Interaction, hidden: bool = False):
         """Roll a new set of character stats"""
-        self.logger.debug(
+        logger.debug(
             f"Command /newstats invoked with arguments: hidden={hidden}")
         results = genstats()
         results_str = ', '.join(map(str, results))
@@ -102,20 +103,20 @@ class DiceRolls(commands.Cog):
                 isinstance(error.original, NotationParseException):
             await ctx.response.send_message(error.original.args[0])
         else:
-            self.logger.exception(
+            logger.exception(
                 f"Unhandled error in command: /{ctx.command.qualified_name}")
             await ctx.response.send_message("There was a problem... I'm not surprised tbh.")
 
     async def simple_roll(self, ctx: Interaction, *,
                           die: int, modifier: int = 0, advantage: Advantage = None, hidden: bool = False):
         """Roll a simple die"""
-        self.logger.debug(
+        logger.debug(
             f"Command /d{die} invoked with arguments: modifier={modifier}, advantage={advantage}, hidden={hidden}")
         embed = self.create_embed_for_simple_roll(ctx, die=die, modifier=modifier, advantage=advantage)
         await ctx.response.send_message(embed=embed, ephemeral=hidden)
 
-    async def create_embed_for_simple_roll(self, ctx: Interaction, *,
-                                           die: int, modifier: int, advantage: Advantage = None) -> discord.Embed:
+    def create_embed_for_simple_roll(self, ctx: Interaction, *,
+                                     die: int, modifier: int, advantage: Advantage = None) -> discord.Embed:
         """Create and embed for a dice roll
 
         Args:
@@ -141,10 +142,10 @@ class DiceRolls(commands.Cog):
             result = min(rolls) + modifier
             result_str = f"[~~{max(rolls)}~~, **{min(rolls)}**]{mod_str} = {result}"
         #
-        result_str = f"{emoji or 'Result:'} {result_str}"
+        emoji = self.bot.get_cached_emoji(f'd{die}')
+        result_str = f"Result: {result_str}"
         embed = discord.Embed(title=f"Rolled d{die}{mod_str}",
                               description=result_str)
-        emoji = await self.bot.get_app_emoji_by_name(f'd{die}')
         if emoji:
             embed.set_thumbnail(url=emoji.url)
         #
