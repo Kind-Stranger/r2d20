@@ -39,7 +39,7 @@ class BotAdminCog(commands.GroupCog, group_name='bot'):
         """Sync the command tree"""
         await ctx.response.send_message("Syncing...", ephemeral=True)
         await self.bot.tree.sync()
-        await ctx.response.edit_message(content="Synced")
+        await ctx.edit_original_response(content="Synced")
 
     @app_commands.command()
     async def log_level(self, ctx: Interaction, level: str):
