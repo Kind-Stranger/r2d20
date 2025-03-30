@@ -1,4 +1,5 @@
 import logging
+import random
 import re
 
 import discord
@@ -50,7 +51,10 @@ class DiceNotationParser:
     def process(self):
         """Process the dice notation"""
         self._parse()
+        logger.debug(f"Parsed: {self.parsed}")
         self._calculate_results()
+        logger.debug(f"Rolled: {self.rolled}")
+        logger.debug(f"Results: {self.results}")
 
     def _parse(self):
         """Parse dice notation and add to parsed list
@@ -125,6 +129,9 @@ class ParsedDiceRoller:
         self.validate()
         self.roll()
 
+    def __repr__(self):
+        return f'<ParsedDiceRoller raw_results={self.raw_results}, results={self.results}, total={self.total}>'
+
     @property
     def raw_results(self) -> list[int]:
         """Raw dice rolls"""
@@ -188,6 +195,10 @@ class ParsedDiceRoller:
         #
         self._total = sum(self._results)
 
+        if (self.pd.min_max == "min" and self._total < self.pd.m_score) or\
+           (self.pd.min_max == "max" and self._total > self.pd.m_score):
+            self._total = self.pd.m_score
+
         if str(self.pd.modifier).startswith("+"):
             self._total += int(self.pd.modifier[1:])
         elif str(self.pd.modifier).startswith("-"):
@@ -196,10 +207,3 @@ class ParsedDiceRoller:
             self._total *= int(self.pd.modifier[1:])
         elif str(self.pd.modifier).startswith("/"):
             self._total /= int(self.pd.modifier[1:])
-        #
-        if str(self.pd.min_max).startswith("min") and\
-           self.pd.m_score < int(self.pd.min_max[3:]):
-            self._total = self.pd.m_score
-        elif str(self.pd.min_max).startswith("max") and\
-                self.pd.m_score > int(self.pd.min_max[3:]):
-            self._total = self.pd.m_score
