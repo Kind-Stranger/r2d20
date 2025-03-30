@@ -43,8 +43,9 @@ class R2d20(commands.Bot):
         else:
             await self.load_all_cogs()
         #
-        cmds = await self.tree.sync(guild=HOME_GUILD)
-        logger.debug(f"Commands synced: {cmds}")
+        for guild in TEST_GUILDS:
+            cmds = await self.tree.sync(guild=guild)
+            logger.debug(f"Commands synced: {cmds}")
         with open(os.path.join(RESOURCES_DIR, "welcome.txt")) as f:
             self.welcome_text = f.read().strip()
         #
