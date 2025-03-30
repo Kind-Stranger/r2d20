@@ -1,8 +1,23 @@
 # r2d20
-Discord Bot with various D&amp;D related features
+A dice-rolling bot for Discord
 
-Tested with Python 3.8.0
+Tested with Python 3.12
 
-Required packages:
- * discord.py (version 1.7.3)               https://discordpy.readthedocs.io/en/stable/
- * discord-py-slash-command (version 3.0.3) https://pypi.org/project/discord-py-slash-command/3.0.3/
+## Key Features
+ * Basic dice roll commands (e.g. /d20)
+ * Advance dice roll notation command (/roll)
+ * Simple multiplayer dice games
+
+## Required Packages
+ * discord.py (version 2.5 or later) https://github.com/Rapptz/discord.py
+
+## Running The Bot
+ * Follow Discord's but setup.
+ * Clone the project.
+ * Install required packages (See above)
+ * Create a .env file at the root level and include the following:
+ ```
+PYTHONPATH=src
+TOKEN=<your bot's token>
+```
+ * Run `src/r2d20/__main__.py`
