@@ -7,7 +7,6 @@ from discord.ext import commands
 
 from bot import R2d20
 from utils.enums import Advantage
-from utils.roll_utils import genstats
 from utils.dice import NotationParseException, create_embed_from_notation
 
 logger = logging.getLogger(__name__)
@@ -93,7 +92,7 @@ class DiceRolls(commands.Cog):
         """Roll a new set of character stats"""
         logger.debug(
             f"Command /newstats invoked with arguments: hidden={hidden}")
-        results = genstats()
+        results = self.genstats()
         results_str = ', '.join(map(str, results))
         embed = discord.Embed(title='Rolled New Stats',
                               description=results_str)
@@ -163,6 +162,15 @@ class DiceRolls(commands.Cog):
         embed.set_author(name=interaction.user.display_name,
                          icon_url=interaction.user.avatar.url)
         return embed
+
+    def genstats(self):
+        """Generate raw stats for a new D&D Character"""
+        results = []
+        for _ in range(6):
+            rolls = [random.randint(1, 6) for _ in range(4)]
+            result = sum(sorted(rolls, reverse=True)[:-1])
+            results.append(result)
+        return sorted(results)
 
 
 async def setup(bot: commands.Bot):
