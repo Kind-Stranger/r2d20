@@ -12,7 +12,7 @@ Tested with Python 3.12
  * discord.py (version 2.5 or later) https://github.com/Rapptz/discord.py
 
 ## Running The Bot
- * Follow Discord's but setup.
+ * Follow Discord's bot setup guide.
  * Clone the project.
  * Install required packages (See above)
  * Create a .env file at the root level and include the following:
