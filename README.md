@@ -7,6 +7,7 @@ Tested with Python 3.12
  * Basic dice roll commands (e.g. /d20)
  * Advance dice roll notation command (/roll)
  * Simple multiplayer dice games
+ * Bot admin commands
 
 ## Required Packages
  * discord.py (version 2.5 or later) https://github.com/Rapptz/discord.py
