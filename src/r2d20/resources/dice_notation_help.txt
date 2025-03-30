@@ -1,0 +1,35 @@
+Dice syntax `AdBmCkD+E...`
+All uppercase letters are numeric variables 
+All lowercase letters are fixed
+    (i.e. if you are specifying a minimum `mC`,
+    the letter `m` must be provided followed by a number replacing `C`)
+where:
+    `A`   number of dice                      (OPTIONAL - defaults to 1)
+    `dB`  number of sides `B` on dice         (MANDATORY)
+            specify fudge/fate dice with "f"
+    `mC`  `m` = min/max, value `C` for dice   (OPTIONAL)
+    `kD`  number of dice `D` to keep/drop     (OPTIONAL)
+        `k` can be replaced by:
+            - `kh` keep highest (same as `k`)
+            - `kl` keep lowest
+            - `dh` drop highest
+            - `dl` drop lowest
+        specials (replace `kD` with the following):
+            - `@adv` (advantage) keep highest 1 (defaults to 2 dice `A`)
+            - `@dis` (disadvantage) keep lowest 1 (defaults to 2 dice `A`)
+    `+E`  add `E` to the final result         (OPTIONAL)
+        `+` can be replaced by:
+            - `-` subtract `E` from final result
+            - `*` multiply final result by `E`
+            - `/` divide final result by `E`
+
+It is possible to roll more than 2 dice with advantage/disadvantage. Only
+    the highest/lowest single result will be kept.
+
+The sequence can be repeated any number of times. e.g.:
+    `d20@adv+5+2d4+1`
+    Rolls two 20-sided dice
+    Keeps the highest single result
+    Adds 5
+    Adds the results from two four-sided dice
+    Adds 1
