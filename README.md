@@ -16,9 +16,6 @@ Tested with Python 3.12
  * Follow Discord's bot setup guide.
  * Clone the project.
  * Install required packages (See above)
- * Create a .env file at the root level and include the following:
- ```
-PYTHONPATH=src
-TOKEN=<your bot's token>
-```
+ * Ensure the `src` directory is on the PYTHONPATH
+ * Create the environment variable `TOKEN` with the value as your bot's token
  * Run `src/r2d20/__main__.py`
