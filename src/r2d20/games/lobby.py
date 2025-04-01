@@ -1,6 +1,8 @@
 import logging
 import discord
 
+__all__ = ['LobbyView']
+
 logger = logging.getLogger(__name__)
 
 
@@ -33,7 +35,7 @@ class LobbyView(discord.ui.View):
             max_players (int): The maximum number of players allowed in the lobby.
         """
         super().__init__(**kwargs)
-        self.interaction = interaction
+        self.orig_interaction = interaction
         if lobby_title is None:
             self.title = f"{interaction.user.display_name}'s Lobby"
         else:
@@ -106,4 +108,4 @@ class LobbyView(discord.ui.View):
         self.clear_items()
         embed = self.embed
         embed.set_footer(text="Lobby timed out.")
-        await self.interaction.edit_original_response(embed=embed, view=None)
+        await self.orig_interaction.edit_original_response(embed=embed, view=None)
