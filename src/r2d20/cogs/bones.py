@@ -26,7 +26,7 @@ class BonesCog(commands.GroupCog, name='bones'):
         await interaction.response.send_message(embed=lobby.embed, view=lobby)
         await lobby.wait()
         time.sleep(1)
-        game = bones.BonesGame(self.bot, lobby=lobby, ruleset_name=ruleset_name)
+        game = bones.BonesGame(self.bot, interaction, members=lobby.members, ruleset_name=ruleset_name)
         await interaction.edit_original_response(embed=game.embed, view=game)
         await game.wait()
 
