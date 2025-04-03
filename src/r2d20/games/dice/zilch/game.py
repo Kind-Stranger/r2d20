@@ -21,6 +21,21 @@ class ZilchPlayer(PlayerBase):
         self.rounds: list[ZilchRound] = []
 
 
+class HoldButton(discord.ui.Button):
+    selectedStyle = discord.ButtonStyle.primary
+    deselectedStyle = discord.ButtonStyle.secondary
+
+    def __init__(self, *, label=None):
+        super().__init__()
+        self.label = label
+        self.style = self.deselectedStyle
+        self.row = 2
+
+    @property
+    def selected(self):
+        return self.style == self.selectedStyle
+
+
 class ZilchGame(discord.ui.View):
     def __init__(self, interaction: discord.Interaction, *,
                  members: list[discord.Member], **kwargs):
@@ -33,15 +48,60 @@ class ZilchGame(discord.ui.View):
         self._player_marker = "👈"
         self._embed = self._init_embed()
 
+        roll_button = discord.ui.Button(style=discord.ButtonStyle.green,
+                                        label='Roll',
+                                        emoji="🎲",
+                                        row=1)
+        roll_button.interaction_check = self.roll_or_bank_check
+        roll_button.callback = self.roll
+        self._roll_button = roll_button
+        bank_button = discord.ui.Button(style=discord.ButtonStyle.green,
+                                        label='Bank',
+                                        row=1)
+        bank_button.interaction_check = self.roll_or_bank_check
+        bank_button.callback = self.bank
+        self._bank_button = bank_button
+        
+        self._hold_buttons: list[HoldButton]
+
     @property
     def current_player(self) -> ZilchPlayer | None:
         if self._current_player_index in range(len(self.players)):
             return self.players[self._current_player_index]
 
     @property
+    def embed(self) -> discord.Embed:
+        return self._embed
+    
+    @property
     def is_game_over(self) -> bool:
         max_score = max(player.score for player in self.players)
         return max_score >= self.target_score
+
+    async def roll_or_bank_check(self, interaction: discord.Interaction):
+        return any(button.selected for button in self._hold_buttons)
+
+    async def roll(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.current_player.roll()
+        self._roll_button.disabled = True
+        self._bank_button.disabled = True
+        await interaction.response.edit_message(embed=self._embed, view=self)
+
+    async def bank(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.current_player.bank()
+        await interaction.response.edit_message(embed=self._embed, view=self)
+
+    async def hold(self, interaction: discord.Interaction, button: HoldButton):
+        "Toggle various buttons' selected/disabled status"
+        button.style == button.deselectedStyle if button.selected else button.selectedStyle
+        if any(button.selected for button in self._hold_buttons):
+            self._roll_button.disabled = False
+            self._bank_button.disabled = False
+        else:
+            self._roll_button.disabled = True
+            self._bank_button.disabled = True
+        #
+        await interaction.response.edit_message(view=self)
 
     def _init_embed(self) -> discord.Embed:
         embed = discord.Embed(title="Zilch",
