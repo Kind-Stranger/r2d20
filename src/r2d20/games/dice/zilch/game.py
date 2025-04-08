@@ -10,30 +10,84 @@ __all__ = ['ZilchGame']
 logger = logging.getLogger(__name__)
 
 
+class ZilchDieButton(discord.ui.Button):
+    held_style = discord.ButtonStyle.grey
+    unheld_style = discord.ButtonStyle.red
+    
+    def __init__(self, **kwargs):
+        """A button representing a die in the Zilch game.
+        
+        Args:
+            kwargs: Additional keyword arguments sent to discord.ui.Button
+
+        NOTE: label, style and disabled properties are handled by this class.
+        """
+        super().__init__(style=self.unheld_style, **kwargs)
+        self._is_held: bool = False
+        self._is_locked: bool = False
+        self.disabled = False
+        self.emoji = "🎲"
+        self.roll()
+
+    @property
+    def value(self) -> int:
+        return self._value
+    
+    @property
+    def is_held(self) -> bool:
+        return self._is_held and not self._is_locked
+    
+    @property
+    def is_locked(self) -> bool:
+        return self._is_locked
+
+    def roll(self) -> int:
+        self._value = random.randint(1, 6)
+        self._set_label()
+
+    def toggle_hold(self) -> bool:
+        if self._is_locked:
+            return True
+        self._is_held = not self._is_held
+        self._set_style()
+        return self._is_held
+    
+    def lock_if_held(self):
+        if self._is_held:
+            self._is_locked = True
+            self._set_disabled()
+
+    def _set_label(self):
+        self.label = f'**[{self._value}]**'
+
+    def _set_style(self):
+        self.style = self.held_style if self._is_held else self.unheld_style
+    
+    def _set_disabled(self):
+        self.disabled = self._is_locked
+
+
 class ZilchRound:
-    pass
+    def __init__(self):
+        self.score = 0
 
 
 class ZilchPlayer(PlayerBase):
     def __init__(self, member: discord.Member):
         super().__init__(member)
         self.score = 0
+        self.current_round: ZilchRound = None
         self.rounds: list[ZilchRound] = []
 
+    def new_round(self):
+        self.current_round = ZilchRound()
+        self.rounds.append(self.current_round)
 
-class HoldButton(discord.ui.Button):
-    selectedStyle = discord.ButtonStyle.primary
-    deselectedStyle = discord.ButtonStyle.secondary
+    def roll(self):
+        self.current_round.roll()
 
-    def __init__(self, *, label=None):
-        super().__init__()
-        self.label = label
-        self.style = self.deselectedStyle
-        self.row = 2
-
-    @property
-    def selected(self):
-        return self.style == self.selectedStyle
+    def bank(self):
+        self.score += self.current_round.score
 
 
 class ZilchGame(discord.ui.View):
@@ -48,21 +102,23 @@ class ZilchGame(discord.ui.View):
         self._player_marker = "👈"
         self._embed = self._init_embed()
 
-        roll_button = discord.ui.Button(style=discord.ButtonStyle.green,
-                                        label='Roll',
-                                        emoji="🎲",
-                                        row=1)
-        roll_button.interaction_check = self.roll_or_bank_check
-        roll_button.callback = self.roll
-        self._roll_button = roll_button
-        bank_button = discord.ui.Button(style=discord.ButtonStyle.green,
-                                        label='Bank',
-                                        row=1)
-        bank_button.interaction_check = self.roll_or_bank_check
-        bank_button.callback = self.bank
-        self._bank_button = bank_button
+        self.roll_button = discord.ui.Button(style=discord.ButtonStyle.green,
+                                             label='Roll',
+                                             emoji="🎲",
+                                             row=1)
+        self.roll_button.interaction_check = self.roll_or_bank_check
+        self.roll_button.callback = self.roll
+
+        self.bank_button = discord.ui.Button(style=discord.ButtonStyle.green,
+                                             label='Bank',
+                                             row=1)
+        self.bank_button.interaction_check = self.roll_or_bank_check
+        self.bank_button.callback = self.bank
         
-        self._hold_buttons: list[HoldButton]
+        self.dice_buttons = [ZilchDieButton(row=0) for _ in range(6)]
+        for button in self.dice_buttons:
+            button.interaction_check = self.hold_check
+            button.callback = self.hold
 
     @property
     def current_player(self) -> ZilchPlayer | None:
@@ -79,27 +135,27 @@ class ZilchGame(discord.ui.View):
         return max_score >= self.target_score
 
     async def roll_or_bank_check(self, interaction: discord.Interaction):
-        return any(button.selected for button in self._hold_buttons)
+        return any(die.is_held for die in self.dice_buttons)
 
     async def roll(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_player.roll()
-        self._roll_button.disabled = True
-        self._bank_button.disabled = True
+        self.roll_button.disabled = True
+        self.bank_button.disabled = True
         await interaction.response.edit_message(embed=self._embed, view=self)
 
     async def bank(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_player.bank()
         await interaction.response.edit_message(embed=self._embed, view=self)
 
-    async def hold(self, interaction: discord.Interaction, button: HoldButton):
+    async def hold(self, interaction: discord.Interaction, button: ZilchDieButton):
         "Toggle various buttons' selected/disabled status"
-        button.style == button.deselectedStyle if button.selected else button.selectedStyle
-        if any(button.selected for button in self._hold_buttons):
-            self._roll_button.disabled = False
-            self._bank_button.disabled = False
+        button.toggle_hold()
+        if any(die.is_held for die in self.dice_buttons):
+            self.roll_button.disabled = False
+            self.bank_button.disabled = False
         else:
-            self._roll_button.disabled = True
-            self._bank_button.disabled = True
+            self.roll_button.disabled = True
+            self.bank_button.disabled = True
         #
         await interaction.response.edit_message(view=self)
 
