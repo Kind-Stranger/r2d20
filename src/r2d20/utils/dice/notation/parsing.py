@@ -13,7 +13,7 @@ __all__ = [
     'create_embed_from_notation'
 ]
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 NOTATION_PATTERN = r'''(?x)^
     (?P<num_dice>\d+)?          # Number of dice                (optional)
