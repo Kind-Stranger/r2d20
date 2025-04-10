@@ -3,6 +3,7 @@ import random
 
 import discord
 
+from r2d20.bot import R2d20
 from r2d20.games.players import PlayerBase
 
 __all__ = ['ZilchGame']
@@ -11,22 +12,30 @@ logger = logging.getLogger(__name__)
 
 
 class ZilchDieButton(discord.ui.Button):
-    held_style = discord.ButtonStyle.grey
-    unheld_style = discord.ButtonStyle.red
+    """A button representing a die in the Zilch game.
+
+    NOTE:
+        The button's label, style and disabled properties are handled by
+        this class and will be overridden if passed to the parent class.
+    
+    Args:
+        **kwargs: Additional keyword arguments sent to discord.ui.Button
+
+    Attributes:
+        held_style (discord.ButtonStyle): Style when the die is held.
+        unheld_style (discord.ButtonStyle): Style when the die is not held.
+        value (int): The current value of the die.
+        is_held (bool): Whether the die is currently held.
+        is_locked (bool): Whether the die is locked and cannot be rolled again.
+    
+    """
+    held_style = discord.ButtonStyle.red
+    unheld_style = discord.ButtonStyle.grey
     
     def __init__(self, **kwargs):
-        """A button representing a die in the Zilch game.
-        
-        Args:
-            kwargs: Additional keyword arguments sent to discord.ui.Button
-
-        NOTE: label, style and disabled properties are handled by this class.
-        """
-        super().__init__(style=self.unheld_style, **kwargs)
+        super().__init__(style=self.unheld_style, emoji="🎲", **kwargs)
         self._is_held: bool = False
         self._is_locked: bool = False
-        self.disabled = False
-        self.emoji = "🎲"
         self.roll()
 
     @property
@@ -42,10 +51,12 @@ class ZilchDieButton(discord.ui.Button):
         return self._is_locked
 
     def roll(self) -> int:
+        """Roll this die and set button label according to result"""
         self._value = random.randint(1, 6)
         self._set_label()
 
     def toggle_hold(self) -> bool:
+        """Toggle held flag and styles"""
         if self._is_locked:
             return True
         self._is_held = not self._is_held
@@ -53,17 +64,21 @@ class ZilchDieButton(discord.ui.Button):
         return self._is_held
     
     def lock_if_held(self):
+        """Lock the die if it is currently held"""
         if self._is_held:
             self._is_locked = True
             self._set_disabled()
 
     def _set_label(self):
-        self.label = f'**[{self._value}]**'
+        """Sets the label based on the current dice value"""
+        self.label = f'[{self._value}]'
 
     def _set_style(self):
+        """Sets the style of the button based on whether it is cuurently held"""
         self.style = self.held_style if self._is_held else self.unheld_style
     
     def _set_disabled(self):
+        """Sets the button to disabled if it has been locked"""
         self.disabled = self._is_locked
 
 
@@ -91,7 +106,7 @@ class ZilchPlayer(PlayerBase):
 
 
 class ZilchGame(discord.ui.View):
-    def __init__(self, interaction: discord.Interaction, *,
+    def __init__(self, bot: R2d20, interaction: discord.Interaction, *,
                  members: list[discord.Member], **kwargs):
         super().__init__(**kwargs)
         self.orig_interaction = interaction
@@ -102,24 +117,26 @@ class ZilchGame(discord.ui.View):
         self._player_marker = "👈"
         self._embed = self._init_embed()
 
+        self._dice_buttons: dict[str, ZilchDieButton] = {}
+        for i in range(6):
+            button = ZilchDieButton(row=i // 3)  # 3 buttons per row
+            button.callback = self.hold
+            self.add_die_button(button)
+
         self.roll_button = discord.ui.Button(style=discord.ButtonStyle.green,
                                              label='Roll',
-                                             emoji="🎲",
-                                             row=1)
-        self.roll_button.interaction_check = self.roll_or_bank_check
+                                             row=2)
+        self.roll_button.interaction_check = self.is_any_die_held
         self.roll_button.callback = self.roll
+        self.add_item(self.roll_button)
 
-        self.bank_button = discord.ui.Button(style=discord.ButtonStyle.green,
+        self.bank_button = discord.ui.Button(style=discord.ButtonStyle.blurple,
                                              label='Bank',
-                                             row=1)
-        self.bank_button.interaction_check = self.roll_or_bank_check
+                                             row=2)
+        self.bank_button.interaction_check = self.is_any_die_held
         self.bank_button.callback = self.bank
+        self.add_item(self.bank_button)
         
-        self.dice_buttons = [ZilchDieButton(row=0) for _ in range(6)]
-        for button in self.dice_buttons:
-            button.interaction_check = self.hold_check
-            button.callback = self.hold
-
     @property
     def current_player(self) -> ZilchPlayer | None:
         if self._current_player_index in range(len(self.players)):
@@ -134,7 +151,7 @@ class ZilchGame(discord.ui.View):
         max_score = max(player.score for player in self.players)
         return max_score >= self.target_score
 
-    async def roll_or_bank_check(self, interaction: discord.Interaction):
+    async def is_any_die_held(self, interaction: discord.Interaction):
         return any(die.is_held for die in self.dice_buttons)
 
     async def roll(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -147,10 +164,12 @@ class ZilchGame(discord.ui.View):
         self.current_player.bank()
         await interaction.response.edit_message(embed=self._embed, view=self)
 
-    async def hold(self, interaction: discord.Interaction, button: ZilchDieButton):
+    async def hold(self, interaction: discord.Interaction):#, button: ZilchDieButton):
         "Toggle various buttons' selected/disabled status"
+        button_id = interaction.data['custom_id']
+        button = self.get_die_button(button_id)
         button.toggle_hold()
-        if any(die.is_held for die in self.dice_buttons):
+        if any(die.is_held for die in self._dice_buttons.values()):
             self.roll_button.disabled = False
             self.bank_button.disabled = False
         else:
@@ -159,14 +178,24 @@ class ZilchGame(discord.ui.View):
         #
         await interaction.response.edit_message(view=self)
 
+    def add_die_button(self, button: ZilchDieButton):
+        """Add an item to the view."""
+        id = str(button.custom_id or button.sku_id)
+        self._dice_buttons[id] = button
+        self.add_item(button)
+
+    def get_die_button(self, id: str) -> ZilchDieButton:
+        """Get a button by its ID."""
+        return self._dice_buttons.get(str(id))
+
     def _init_embed(self) -> discord.Embed:
         embed = discord.Embed(title="Zilch",
                               description=f'Target : **{self.target_score}**')
-        first = True
-        for player in self.players:
-            field = self._create_player_embed_field(player, first)
-            first = False
-            embed.add_field(**field)
+        # first = True
+        # for player in self.players:
+        #     field = self._create_player_embed_field(player, first)
+        #     first = False
+        #     embed.add_field(**field)
         #
         return embed
 
