@@ -36,4 +36,4 @@ async def setup(bot: R2d20):
     bot.ai_session = LLMSessionHandler()
     bot.ai_session.init_session()
     logger.info("AI session initialized")
-    await bot.add_cog(LlamaCog(bot), guild=HOME_GUILD)
+    await bot.add_cog(LlamaCog(bot), guilds=TEST_GUILDS)
