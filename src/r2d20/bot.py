@@ -19,7 +19,7 @@ TEST_GUILDS: list[discord.Object]
 
 
 class R2d20(commands.Bot):
-    def __init__(self, command_prefix=None, *, intents: discord.Intents):
+    def __init__(self, command_prefix="/", *, intents: discord.Intents):
         super().__init__(command_prefix, intents=intents)
         self.help_command = commands.DefaultHelpCommand()
         self._emoji_cache: dict[str, discord.Emoji] = {}
