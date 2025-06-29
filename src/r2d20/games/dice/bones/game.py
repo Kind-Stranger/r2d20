@@ -1,16 +1,13 @@
 import logging
 import random
 
-
 import discord
 
 from r2d20.bot import R2d20
 from r2d20.games.players import PlayerBase
-from .rules import rulesets
-from .rules import BonesRules
+from .rules import BonesRules, rulesets
 
 __all__ = ['BonesGame']
-
 
 logger = logging.getLogger(__name__)
 

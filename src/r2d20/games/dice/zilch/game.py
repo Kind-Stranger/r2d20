@@ -1,108 +1,14 @@
 import logging
-import random
 
 import discord
 
 from r2d20.bot import R2d20
-from r2d20.games.players import PlayerBase
+from .buttons import ZilchDieButton
+from .players import ZilchPlayer
 
 __all__ = ['ZilchGame']
 
 logger = logging.getLogger(__name__)
-
-
-class ZilchDieButton(discord.ui.Button):
-    """A button representing a die in the Zilch game.
-
-    NOTE:
-        The button's label, style and disabled properties are handled by
-        this class and will be overridden if passed to the parent class.
-    
-    Args:
-        **kwargs: Additional keyword arguments sent to discord.ui.Button
-
-    Attributes:
-        held_style (discord.ButtonStyle): Style when the die is held.
-        unheld_style (discord.ButtonStyle): Style when the die is not held.
-        value (int): The current value of the die.
-        is_held (bool): Whether the die is currently held.
-        is_locked (bool): Whether the die is locked and cannot be rolled again.
-    
-    """
-    held_style = discord.ButtonStyle.red
-    unheld_style = discord.ButtonStyle.grey
-    
-    def __init__(self, **kwargs):
-        super().__init__(style=self.unheld_style, emoji="🎲", **kwargs)
-        self._is_held: bool = False
-        self._is_locked: bool = False
-        self.roll()
-
-    @property
-    def value(self) -> int:
-        return self._value
-    
-    @property
-    def is_held(self) -> bool:
-        return self._is_held and not self._is_locked
-    
-    @property
-    def is_locked(self) -> bool:
-        return self._is_locked
-
-    def roll(self) -> int:
-        """Roll this die and set button label according to result"""
-        self._value = random.randint(1, 6)
-        self._set_label()
-
-    def toggle_hold(self) -> bool:
-        """Toggle held flag and styles"""
-        if self._is_locked:
-            return True
-        self._is_held = not self._is_held
-        self._set_style()
-        return self._is_held
-    
-    def lock_if_held(self):
-        """Lock the die if it is currently held"""
-        if self._is_held:
-            self._is_locked = True
-            self._set_disabled()
-
-    def _set_label(self):
-        """Sets the label based on the current dice value"""
-        self.label = f'[{self._value}]'
-
-    def _set_style(self):
-        """Sets the style of the button based on whether it is cuurently held"""
-        self.style = self.held_style if self._is_held else self.unheld_style
-    
-    def _set_disabled(self):
-        """Sets the button to disabled if it has been locked"""
-        self.disabled = self._is_locked
-
-
-class ZilchRound:
-    def __init__(self):
-        self.score = 0
-
-
-class ZilchPlayer(PlayerBase):
-    def __init__(self, member: discord.Member):
-        super().__init__(member)
-        self.score = 0
-        self.current_round: ZilchRound = None
-        self.rounds: list[ZilchRound] = []
-
-    def new_round(self):
-        self.current_round = ZilchRound()
-        self.rounds.append(self.current_round)
-
-    def roll(self):
-        self.current_round.roll()
-
-    def bank(self):
-        self.score += self.current_round.score
 
 
 class ZilchGame(discord.ui.View):
@@ -117,23 +23,23 @@ class ZilchGame(discord.ui.View):
         self._player_marker = "👈"
         self._embed = self._init_embed()
 
-        self._dice_buttons: dict[str, ZilchDieButton] = {}
+        self.dice_buttons: dict[str, ZilchDieButton] = {}
         for i in range(6):
-            button = ZilchDieButton(row=i // 3)  # 3 buttons per row
+            button = ZilchDieButton(row=i//3)  # 3 buttons per row
             button.callback = self.hold
-            self.add_die_button(button)
-
+            id = str(button.custom_id or button.sku_id)
+            self.dice_buttons[id] = button  # So we can retrieve it on callback
+            self.add_item(button)  # Add the button to the view
+        #
         self.roll_button = discord.ui.Button(style=discord.ButtonStyle.green,
                                              label='Roll',
                                              row=2)
-        self.roll_button.interaction_check = self.is_any_die_held
         self.roll_button.callback = self.roll
         self.add_item(self.roll_button)
 
         self.bank_button = discord.ui.Button(style=discord.ButtonStyle.blurple,
                                              label='Bank',
                                              row=2)
-        self.bank_button.interaction_check = self.is_any_die_held
         self.bank_button.callback = self.bank
         self.add_item(self.bank_button)
         
@@ -146,30 +52,33 @@ class ZilchGame(discord.ui.View):
     def embed(self) -> discord.Embed:
         return self._embed
     
-    @property
     def is_game_over(self) -> bool:
         max_score = max(player.score for player in self.players)
         return max_score >= self.target_score
 
-    async def is_any_die_held(self, interaction: discord.Interaction):
-        return any(die.is_held for die in self.dice_buttons)
-
-    async def roll(self, interaction: discord.Interaction, button: discord.ui.Button):
-        self.current_player.roll()
+    async def roll(self, interaction: discord.Interaction):
+        """Callback for the roll button.  Triggers a roll of the dice."""
+        if all(die.is_locked or die.is_held for die in self.dice_buttons.values()):
+            self._reset_all_dice()
         self.roll_button.disabled = True
         self.bank_button.disabled = True
         await interaction.response.edit_message(embed=self._embed, view=self)
 
-    async def bank(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def bank(self, interaction: discord.Interaction):
+        """Callback for the bank button.  Banks score and passes turn to next
+        player.
+        """
         self.current_player.bank()
+        self._end_turn()
         await interaction.response.edit_message(embed=self._embed, view=self)
 
-    async def hold(self, interaction: discord.Interaction):#, button: ZilchDieButton):
-        "Toggle various buttons' selected/disabled status"
-        button_id = interaction.data['custom_id']
-        button = self.get_die_button(button_id)
+    async def hold(self, interaction: discord.Interaction):
+        """Callback for the die buttons"""
+        id = interaction.data['custom_id']
+        button = self.dice_buttons.get(str(id))
+        logger.debug(f"Button pressed: {button.label}")
         button.toggle_hold()
-        if any(die.is_held for die in self._dice_buttons.values()):
+        if any(die.is_held for die in self.dice_buttons.values()):
             self.roll_button.disabled = False
             self.bank_button.disabled = False
         else:
@@ -177,16 +86,6 @@ class ZilchGame(discord.ui.View):
             self.bank_button.disabled = True
         #
         await interaction.response.edit_message(view=self)
-
-    def add_die_button(self, button: ZilchDieButton):
-        """Add an item to the view."""
-        id = str(button.custom_id or button.sku_id)
-        self._dice_buttons[id] = button
-        self.add_item(button)
-
-    def get_die_button(self, id: str) -> ZilchDieButton:
-        """Get a button by its ID."""
-        return self._dice_buttons.get(str(id))
 
     def _init_embed(self) -> discord.Embed:
         embed = discord.Embed(title="Zilch",
@@ -207,6 +106,28 @@ class ZilchGame(discord.ui.View):
         value = self._visualise_results(player.rounds)
         inline = False
         return {'name': name, 'value': value, 'inline': inline}
+
+    def _reset_all_dice(self): 
+        """Unlock all dice buttons."""
+        for die in self.dice_buttons.values():
+            die.reset()
+
+    def _end_turn(self):
+        max_score = max(player.score for player in self.players)
+        if max_score >= self.target_score:
+            leaders = [player for player in self.players if player.score == max_score]
+            if len(leaders) == len(self.players):
+                self._embed.set_footer(text="Game over! It's a tie!")
+            else:
+                self._embed.set_footer(text=f"Game over! {leaders[0].display_name} wins!")
+            #
+            self.stop()
+        else:
+            self._current_player_index += 1
+            if self._current_player_index >= len(self.players):
+                self._current_player_index = 0
+            self._embed.set_footer(text=f"{self.current_player.display_name}'s turn")
+        #
 
     async def interaction_check(self, interaction: discord.Interaction):
         allowed = interaction.user.id == self.current_player.id
