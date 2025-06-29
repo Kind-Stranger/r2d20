@@ -5,6 +5,7 @@ import discord
 from discord.ext import commands
 
 from definitions import COGS_DIR, EMOJIS, HOME_GUILD, RESOURCES_DIR, TEST_GUILDS
+from utils.connectivity import LLMSessionHandler
 try:
     import config
 except ImportError:
@@ -22,6 +23,7 @@ class R2d20(commands.Bot):
         super().__init__(command_prefix, intents=intents)
         self.help_command = commands.DefaultHelpCommand()
         self._emoji_cache: dict[str, discord.Emoji] = {}
+        self.ai_session: LLMSessionHandler = None
 
     async def on_ready(self):
         """Triggered by event when bot is logged in"""
